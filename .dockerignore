@@ -1,0 +1,14 @@
+node_modules
+frontend/node_modules
+frontend/dist
+frontend/build
+venv
+__pycache__
+*.pyc
+.git
+.env
+db.sqlite3
+db.sqlite3-*
+staticfiles
+media
+scratch

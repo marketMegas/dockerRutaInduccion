@@ -1,0 +1,10 @@
+# Versiones fijadas a proposito: sin esto, cada build resuelve a la ultima
+# version publicada y dos builds del mismo commit dan backends distintos
+# (Django 6.1.1 hoy, 6.1.x la semana que viene). Para actualizar una dependencia
+# se cambia aqui a proposito y se despliega; no se deja flotando.
+Django==6.1.1
+django-cors-headers==4.9.0
+gunicorn==26.2.0
+whitenoise==6.12.0
+google-auth==2.29.0
+requests==2.34.2

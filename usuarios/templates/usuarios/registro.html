@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Registro con Google</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+    <h2>Iniciar Sesión (Normal)</h2>
+    <form id="loginForm">
+        <label for="username">Usuario:</label><br>
+        <input type="text" id="username" required>
+        <br><br>
+        <label for="password">Contraseña:</label><br>
+        <input type="password" id="password" required>
+        <br><br>
+        <button type="submit">Iniciar Sesión</button>
+    </form>
+    <div id="loginMessage" style="color: red; margin-top: 10px;"></div>
+
+    <hr>
+    <h2>O Regístrate (Normal)</h2>
+    <form id="registerForm">
+        <label for="reg_username">Usuario:</label><br>
+        <input type="text" id="reg_username" required>
+        <br><br>
+        <label for="reg_email">Email:</label><br>
+        <input type="email" id="reg_email" required>
+        <br><br>
+        <label for="reg_password">Contraseña:</label><br>
+        <input type="password" id="reg_password" required>
+        <br><br>
+        <button type="submit">Registrarse</button>
+    </form>
+    <div id="registerMessage" style="color: red; margin-top: 10px;"></div>
+
+    <hr>
+    <h2>O Inicia Sesión / Regístrate con Google</h2>
+
+    <div id="g_id_onload"
+         data-client_id="549227011140-784g5vpn47cfk2r7rnc96cen8247qgek.apps.googleusercontent.com"
+         data-callback="manejarRespuestaGoogle">
+    </div>
+
+    <div class="g_id_signin" 
+         data-type="standard" 
+         data-shape="rectangular" 
+         data-theme="outline" 
+         data-text="signin_with"
+         data-size="large" 
+         data-logo_alignment="left">
+    </div>
+
+    <script>
+        // --- 1. Lógica de Login Normal ---
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const msgDiv = document.getElementById('loginMessage');
+
+            fetch('/api/login-normal/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username, password: password })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    msgDiv.style.color = "green";
+                    msgDiv.textContent = data.message;
+                    // Aquí podrías redirigir al usuario, ej: window.location.href = '/dashboard';
+                } else {
+                    msgDiv.style.color = "red";
+                    msgDiv.textContent = data.error || "Error al iniciar sesión";
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                msgDiv.style.color = "red";
+                msgDiv.textContent = "Error de red al intentar iniciar sesión.";
+            });
+        });
+
+        // --- 2. Lógica de Registro Normal ---
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('reg_username').value;
+            const email = document.getElementById('reg_email').value;
+            const password = document.getElementById('reg_password').value;
+            const msgDiv = document.getElementById('registerMessage');
+
+            fetch('/api/registro-normal/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username, email: email, password: password })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    msgDiv.style.color = "green";
+                    msgDiv.textContent = data.message;
+                } else {
+                    msgDiv.style.color = "red";
+                    msgDiv.textContent = data.error || "Error al registrarse";
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                msgDiv.style.color = "red";
+                msgDiv.textContent = "Error de red al intentar registrarse.";
+            });
+        });
+
+        // --- 3. Lógica de Login Google ---
+        function manejarRespuestaGoogle(response) {
+            console.log("Token JWT de Google: " + response.credential);
+            
+            fetch('/api/registro-google/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: response.credential })
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log(data);
+                if (data.status === 'success') {
+                    // Aquí podrías redirigir al usuario
+                    alert(data.message);
+                } else {
+                    alert(data.error);
+                }
+            });
+        }
+    </script>
+</body>
+</html>

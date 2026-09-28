@@ -1,0 +1,18 @@
+# Usar Python como base
+FROM python:3.12-slim
+
+# Crear carpeta de trabajo
+WORKDIR /app
+
+# Instalar dependencias
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+# Copiar el resto del código
+COPY . .
+
+# Recolectar estáticos para que WhiteNoise los sirva detrás de gunicorn
+RUN python manage.py collectstatic --noinput
+
+# Exponer el puerto
+EXPOSE 8000

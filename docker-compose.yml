@@ -1,0 +1,45 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: universidadg-max-backend-1
+    # collectstatic corre en cada arranque, no solo en el build: el volumen .:/app
+    # tapa /app/staticfiles de la imagen, asi que lo que se genero al construir se
+    # descarta. Sin esto, si el host no tiene staticfiles/ el mount lo crea vacio y
+    # whitenoise no sirve nada (admin sin CSS ni JS).
+    command: >
+      sh -c "python manage.py collectstatic --noinput &&
+             gunicorn --bind 0.0.0.0:8000 core_project.wsgi:application --timeout 120"
+    # Sobrevive a reinicios del host: sin esto el sitio no vuelve solo.
+    restart: unless-stopped
+    ports:
+      # Solo en loopback: el backend nunca se expone a internet sin TLS.
+      # Lo alcanza unicamente el nginx del contenedor frontend.
+      - "127.0.0.1:8000:8000"
+    volumes:
+      # :z relabela para SELinux (AlmaLinux 9 lo tiene en enforcing y sin esto
+      # el contenedor no puede escribir). Ignorado en sistemas sin SELinux.
+      - .:/app:z
+      - ./db.sqlite3:/app/db.sqlite3:z
+    environment:
+      - DEBUG=${DEBUG:-False}
+      - SECRET_KEY=${SECRET_KEY:?falta SECRET_KEY en .env}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-megas.com.co,www.megas.com.co,localhost,127.0.0.1}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-https://megas.com.co,https://www.megas.com.co}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER:-}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
+      - NOTIF_DESTINATARIOS=${NOTIF_DESTINATARIOS:-}
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: universidadg-max-frontend-1
+    restart: unless-stopped
+    ports:
+      # Aki entra el TLS del nginx del host, ya en clear.
+      - "127.0.0.1:5137:80"
+    volumes:
+      - ./media:/usr/share/nginx/html/media:ro
+    depends_on:
+      - backend

@@ -1,0 +1,107 @@
+from django.contrib import admin
+from django.core.files.storage import default_storage
+from .models import Course, Module, Lesson, UserProgress, Calificacion, Certificado
+from .views import _adjunto_certificado, _cuerpo_certificado, _enviar
+
+class LessonInline(admin.TabularInline):
+    model = Lesson
+    extra = 1
+    fields = ('title', 'video_url', 'duration', 'content_text', 'order')
+    ordering = ('order',)
+
+class ModuleInline(admin.TabularInline):
+    model = Module
+    extra = 1
+    fields = ('title', 'order')
+    ordering = ('order',)
+
+@admin.register(Course)
+class CourseAdmin(admin.ModelAdmin):
+    list_display = ('id', 'title', 'badge', 'level', 'icon_type', 'duration', 'created_at')
+    list_filter = ('badge', 'level', 'icon_type')
+    search_fields = ('title', 'description')
+    fieldsets = (
+        ('Contenido', {'fields': ('title', 'description', 'cover_image')}),
+        ('Presentación', {'fields': ('icon_type', 'accent_color', 'badge', 'level', 'duration')}),
+    )
+    inlines = [ModuleInline]
+
+@admin.register(Module)
+class ModuleAdmin(admin.ModelAdmin):
+    list_display = ('id', 'title', 'course', 'order')
+    list_filter = ('course',)
+    search_fields = ('title',)
+    inlines = [LessonInline]
+
+@admin.register(Lesson)
+class LessonAdmin(admin.ModelAdmin):
+    list_display = ('id', 'title', 'module', 'order')
+    list_filter = ('module__course', 'module')
+    search_fields = ('title',)
+
+@admin.register(UserProgress)
+class UserProgressAdmin(admin.ModelAdmin):
+    list_display = ('user_id', 'course_id', 'lesson_id', 'completado', 'fecha_actualizacion')
+    list_filter = ('completado', 'course_id')
+    search_fields = ('user_id', 'course_id', 'lesson_id')
+
+# Registrada para que el enlace del correo de aprobacion (/admin/courses/calificacion/)
+# sirva de algo: antes las notas solo se veian en la base.
+@admin.register(Calificacion)
+class CalificacionAdmin(admin.ModelAdmin):
+    list_display = ('user_name', 'user_email', 'course_name', 'score', 'percentage', 'passed', 'fecha_creacion')
+    list_filter = ('passed', 'course_id')
+    search_fields = ('user_id', 'user_name', 'user_email', 'course_id', 'course_name')
+
+@admin.register(Certificado)
+class CertificadoAdmin(admin.ModelAdmin):
+    # Los certificados notificados se consultan desde aca, y el enlace del
+    # correo apunta a la fila (/admin/courses/certificado/<id>/change/), asi que
+    # el registro tiene que existir aunque el aviso nunca haya salido.
+    list_display = ('user_name', 'user_email', 'course_name', 'notificado', 'intentos', 'fecha_emision')
+    list_filter = ('notificado', 'course_id')
+    search_fields = ('user_id', 'user_name', 'user_email', 'course_id', 'course_name')
+    # El estado del aviso solo se cambia con la accion de reenvio: editarlo a
+    # mano dejaria el registro mintiendo sobre si el correo salio o no.
+    readonly_fields = ('archivo', 'intentos', 'fecha_emision', 'notificado', 'notificacion_error')
+    actions = ('reenviar_aviso',)
+
+    @admin.action(description='Reenviar aviso de certificado')
+    def reenviar_aviso(self, request, queryset):
+        enviados, omitidos, sin_archivo, fallidos = 0, 0, 0, 0
+
+        for certificado in queryset:
+            if certificado.notificado:
+                omitidos += 1
+                continue
+
+            # El archivo puede haberse borrado del disco a mano. Se reporta
+            # aparte para que RH sepa por que ese certificado no se pudo
+            # avisar, en vez de verlos todos acumulados como fallos de SMTP.
+            if not certificado.archivo or not default_storage.exists(certificado.archivo):
+                sin_archivo += 1
+                certificado.notificacion_error = 'El archivo ya no esta en el disco: no se puede verificar el certificado.'
+                certificado.save(update_fields=['notificacion_error'])
+                continue
+
+            certificado.intentos += 1
+            notificado, error = _enviar(
+                f"[Certificación completada] {certificado.user_name or certificado.user_id}",
+                _cuerpo_certificado(request, certificado, 'reenvío manual desde el panel'),
+                _adjunto_certificado(certificado),
+            )
+            certificado.notificado = notificado
+            certificado.notificacion_error = error or ''
+            certificado.save()
+
+            if notificado:
+                enviados += 1
+            else:
+                fallidos += 1
+
+        self.message_user(
+            request,
+            f'{enviados} reenviado(s), {fallidos} con error de SMTP, '
+            f'{omitidos} ya notificados (omitidos), {sin_archivo} sin archivo en disco.',
+            level='warning' if (fallidos or sin_archivo) else 'info',
+        )
