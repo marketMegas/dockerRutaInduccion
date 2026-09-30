@@ -9,7 +9,16 @@ import { CourseProgress } from '../components/CourseProgress';
 import { Course1Summary } from '../components/course/summaries/Course1Summary';
 import { Course2Summary } from '../components/course/summaries/Course2Summary';
 import { Course3Summary } from '../components/course/summaries/Course3Summary';
-import { Course4Summary } from '../components/course/summaries/Course4Summary';
+
+// Solo los cursos que ya traian su resumen en el codigo. Un curso nuevo (creado
+// desde /admin) no debe caer en un resumen hardcodeado: antes el else final era
+// <Course1Summary />, asi que cualquier curso unknown terminaba mostrando el
+// contenido GLP del curso 1. Sin entrada aqui, se pinta la descripcion del admin.
+const CURSO_CON_RESUMEN = {
+  1: Course1Summary,
+  2: Course2Summary,
+  3: Course3Summary,
+};
 
 export const CursoDetailPage = () => {
   const { id } = useParams();
@@ -26,7 +35,9 @@ export const CursoDetailPage = () => {
   }, [id, currentUser]);
 
   useEffect(() => {
-    if (course && course.id === parseInt(id)) {
+    // Con 0 lecciones la division daba NaN y el progreso se rompia, asi que un
+    // curso recien creado (aun sin contenido) no fuerza la leccion 1.
+    if (course && course.id === parseInt(id) && course.totalLessons > 0) {
       updateCourseProgress(id, { 
         completedLessons: 1, 
         totalLessons: course.totalLessons, 
@@ -48,8 +59,14 @@ export const CursoDetailPage = () => {
   }
 
   const tabs = ['Resumen', 'Recursos'];
-  
-  const lesson1VideoId = course.lessons && course.lessons.length > 0 ? course.lessons[0].videoId : (course.videoId || 'LXH0upydj0g');
+
+  // Sin video configurado se muestra un placeholder. Antes caia a un ID de
+  // YouTube fijo, asi que todo curso sin video embebia el mismo clip de prueba.
+  const lesson1VideoId = course.lessons && course.lessons.length > 0
+    ? course.lessons[0].videoId
+    : (course.videoId || '');
+
+  const ResumenDelCurso = CURSO_CON_RESUMEN[course.id];
 
 
   return (
@@ -82,14 +99,24 @@ export const CursoDetailPage = () => {
 
         {/* 3. Reproductor de Video (YouTube Real) */}
         <div className="relative aspect-video w-full bg-black rounded-[24px] overflow-hidden shadow-2xl border-[6px] border-white/10">
-          <iframe
-            className="absolute inset-0 w-full h-full"
-            src={`https://www.youtube.com/embed/${lesson1VideoId}`}
-            title={course.title}
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-          ></iframe>
+          {lesson1VideoId ? (
+            <iframe
+              className="absolute inset-0 w-full h-full"
+              src={`https://www.youtube.com/embed/${lesson1VideoId}`}
+              title={course.title}
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            ></iframe>
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center px-6">
+              <Play className="w-14 h-14 text-[#f6811e]" />
+              <p className="text-white font-bold text-lg">Este curso aún no tiene video</p>
+              <p className="text-gray-400 text-sm">
+                Agrega una URL de YouTube en la lección para que aparezca aquí.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* 4. Navegación de pestañas */}
@@ -114,14 +141,28 @@ export const CursoDetailPage = () => {
           {/* TAB: RESUMEN */}
           {activeTab === 0 && (
             <div className="bg-white rounded-[20px] border border-gray-100 p-6 sm:p-8 shadow-sm">
-              {course.id === 4 ? (
-                <Course4Summary />
-              ) : course.id === 3 ? (
-                <Course3Summary />
-              ) : course.id === 2 ? (
-                <Course2Summary />
+              {ResumenDelCurso ? (
+                <ResumenDelCurso />
+              ) : course.description ? (
+                <div>
+                  <h2 className="text-2xl font-black text-gray-900 tracking-tight">
+                    Sobre este curso
+                  </h2>
+                  <p className="mt-4 text-gray-700 leading-relaxed whitespace-pre-line">
+                    {course.description}
+                  </p>
+                </div>
               ) : (
-                <Course1Summary />
+                <div>
+                  <h2 className="text-2xl font-black text-gray-900 tracking-tight">
+                    {course.title}
+                  </h2>
+                  <p className="mt-4 text-gray-500 leading-relaxed">
+                    Este curso todavía no tiene una descripción. Agrégala desde el
+                    panel de administración para que los estudiantes vean el
+                    resumen aquí.
+                  </p>
+                </div>
               )}
             </div>
           )}

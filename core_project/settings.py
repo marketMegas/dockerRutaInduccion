@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     # Apps propias
     'usuarios',
     'courses',
+    'evaluaciones',
     'foro',
 ]
 

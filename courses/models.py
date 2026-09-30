@@ -82,6 +82,15 @@ class Calificacion(models.Model):
     user_email = models.EmailField(blank=True, default="", verbose_name="Correo del Usuario")
     course_id = models.CharField(max_length=255, verbose_name="ID de Curso")
     course_name = models.CharField(max_length=255, verbose_name="Nombre del Curso")
+    # Que evaluacion se rindio, cuando ya se rindio una. NULL a proposito: las
+    # notas anteriores a este modulo no tienen evaluacion que apuntar, y la
+    # ruta vieja de guardar_calificacion (que no manda respuestas) sigue
+    # guardando notas sin evaluacion.
+    evaluacion = models.ForeignKey(
+        'evaluaciones.Evaluacion', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='calificaciones',
+        verbose_name="Evaluación",
+    )
     score = models.IntegerField(default=0, verbose_name="Puntaje")
     total_questions = models.IntegerField(default=0, verbose_name="Total Preguntas")
     percentage = models.IntegerField(default=0, verbose_name="Porcentaje")

@@ -24,4 +24,9 @@ urlpatterns = [
     path('api/foro/', include('foro.urls')),
     # API de Cursos →  /api/cursos/progreso/  y  /api/cursos/progreso/<str:user_id>/
     path('api/cursos/', include('courses.urls')),
+    # Evaluaciones de un curso →  /api/cursos/evaluaciones/<id>/  (el quiz)  y
+    # /api/cursos/evaluaciones/<id>/entregar/  (las respuestas ya corregidas).
+    # Va bajo /api/cursos/ y no en la raiz porque una evaluacion siempre
+    # pertenece a un curso.
+    path('api/cursos/evaluaciones/', include('evaluaciones.urls')),
 ]

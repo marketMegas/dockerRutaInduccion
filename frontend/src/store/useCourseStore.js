@@ -17,17 +17,24 @@ const fetchProgressFromDjango = async (userId) => {
   return [];
 };
 
+// El total sale del backend. Antes caia a 4 cuando el curso venia con 0
+// lecciones (curso recien creado), asi que el progreso arrancaba en un 0/4
+// inventado. Con total 0 el progreso se queda en 0.
+const calcularProgreso = (completedCount, total) => {
+  if (!total) return 0;
+  return Math.min(100, Math.round((completedCount / total) * 100));
+};
+
 const mergeProgress = (coursesList, progressList) => {
   return coursesList.map(course => {
     const courseProgress = progressList.filter(p => String(p.course_id) === String(course.id) && p.completado);
     const completedCount = courseProgress.length;
-    const total = course.totalLessons || course.lessonsCount || 4;
-    const progressPercent = Math.min(100, Math.round((completedCount / total) * 100));
+    const total = course.totalLessons ?? course.lessonsCount ?? 0;
 
     return {
       ...course,
       completedLessons: completedCount,
-      progress: progressPercent
+      progress: calcularProgreso(completedCount, total)
     };
   });
 };
@@ -36,13 +43,12 @@ const mergeCourseProgress = (course, progressList) => {
   if (!course) return null;
   const courseProgress = progressList.filter(p => String(p.course_id) === String(course.id) && p.completado);
   const completedCount = courseProgress.length;
-  const total = course.totalLessons || course.lessonsCount || 4;
-  const progressPercent = Math.min(100, Math.round((completedCount / total) * 100));
+  const total = course.totalLessons ?? course.lessonsCount ?? 0;
 
   return {
     ...course,
     completedLessons: completedCount,
-    progress: progressPercent
+    progress: calcularProgreso(completedCount, total)
   };
 };
 

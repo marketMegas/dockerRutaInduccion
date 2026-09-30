@@ -241,39 +241,20 @@ const course3Resources = [
   }
 ];
 
-const course4Resources = [
-  {
-    id: 1,
-    title: "Video de prueba del curso",
-    type: "Video",
-    youtubeId: "LXH0upydj0g",
-    thumbnail: "https://img.youtube.com/vi/LXH0upydj0g/maxresdefault.jpg"
-  },
-  {
-    id: 2,
-    title: "Imagen de ejemplo",
-    type: "Imagen",
-    imageUrl: "https://i.imgur.com/37SgWWj.jpeg",
-    thumbnail: "https://i.imgur.com/37SgWWj.jpeg",
-    description: "Material de ejemplo para validar el flujo de recursos del curso de prueba."
-  },
-  {
-    id: 3,
-    title: "PDF de ejemplo",
-    type: "PDF",
-    pdfUrl: "https://www.africau.edu/images/default/sample.pdf",
-    thumbnail: "https://images.unsplash.com/photo-1623276527153-fa38c1616b05?q=80&w=1169&auto=format&fit=crop"
-  }
-];
+// Bibliotecas que aun viven en el codigo porque son material de produccion ya
+// publicado. Un curso que no este en este mapa NO debe caer en course1Resources:
+// antes el ternario terminaba en course1Resources, asi que todo curso nuevo
+// mostraba los 14 recursos GLP del curso 1.
+const RECURSOS_POR_CURSO = {
+  1: course1Resources,
+  2: course2Resources,
+  3: course3Resources,
+};
 
-export const RecursosMultimedia = ({ courseId = 1 }) => {
+export const RecursosMultimedia = ({ courseId }) => {
   const [selectedResource, setSelectedResource] = useState(null);
 
-  const currentResources = courseId === 4
-    ? course4Resources
-    : (courseId === 3
-        ? course3Resources
-        : (courseId === 2 ? course2Resources : course1Resources));
+  const currentResources = RECURSOS_POR_CURSO[courseId] ?? [];
 
   const openModal = (resource) => {
     if (resource.type === 'PDF') {
@@ -305,8 +286,20 @@ export const RecursosMultimedia = ({ courseId = 1 }) => {
       </div>
 
       {/* GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {currentResources.map((resource) => (
+      {currentResources.length === 0 ? (
+        <div className="bg-white rounded-[32px] border border-dashed border-gray-200 px-6 py-16 text-center">
+          <Play className="w-12 h-12 mx-auto text-gray-300" />
+          <h3 className="mt-4 text-xl font-black text-gray-800">
+            Este curso aún no tiene recursos
+          </h3>
+          <p className="mt-2 text-gray-500 max-w-md mx-auto">
+            Cuando se carguen videos, imágenes o documentos de este curso,
+            aparecerán aquí.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {currentResources.map((resource) => (
           <div
             key={resource.id}
             onClick={() => openModal(resource)}
@@ -353,7 +346,8 @@ export const RecursosMultimedia = ({ courseId = 1 }) => {
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
 
       {/* MODAL */}
       {selectedResource && (

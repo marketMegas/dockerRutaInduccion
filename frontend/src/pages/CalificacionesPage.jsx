@@ -5,22 +5,22 @@ import {
 } from 'lucide-react';
 import { db } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
+import { useCourseStore } from '../store/useCourseStore';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
-// Course metadata from api.js (same source of truth)
-const COURSES_META = [
-  {
-    id: 4,
-    title: 'pruebaCreacion28',
-    level: 'Prueba',
-    totalLessons: 3,
-    totalQuestions: 3,
-    color: '#5fbd44',
-    bgLight: '#f2ffee',
-    icon: '🟢',
-    description: 'Curso de prueba para validar la creación de nuevos cursos.',
-  },
-];
+// La lista de cursos viene del store (que la pide a Django), no de una lista
+// fija en el codigo: antes COURSES_META tenia un solo curso de prueba
+// hardcodeado, asi que cualquier curso nuevo creado desde /admin era invisible
+// en esta pagina y el contador de la cabecera daria 1/1.
+const COLOR_POR_DEFECTO = '#f6811e';
+
+// accent_color llega como clase de Tailwind ('bg-[#f6811e]'); de ahi se saca el
+// hex para poder usarlo en estilos, y se cae al color de la marca si el admin
+// guardo otra clase.
+const hexDeAccent = (accent) => {
+  const encontrado = /#[0-9a-fA-F]{3,8}/.exec(accent || '');
+  return encontrado ? encontrado[0] : COLOR_POR_DEFECTO;
+};
 
 const getGradeInfo = (percentage) => {
   if (percentage === null || percentage === undefined) {
@@ -56,8 +56,27 @@ const CircularProgress = ({ percentage, color, size = 80 }) => {
 
 export const CalificacionesPage = () => {
   const { currentUser } = useAuth();
+  const { courses, fetchCourses } = useCourseStore();
   const [grades, setGrades] = useState({});   // { courseId: gradeDoc }
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchCourses(currentUser?.uid);
+  }, [currentUser, fetchCourses]);
+
+  // Tarjetas de resultados: los cursos del store, con el color del admin.
+  const cursosConNota = courses.map((course) => {
+    const color = hexDeAccent(course.color);
+    return {
+      id: course.id,
+      title: course.title,
+      level: course.level || 'Básico',
+      description: course.description || '',
+      color,
+      bgLight: `${color}1a`,
+      totalLessons: course.totalLessons ?? 0,
+    };
+  });
 
   useEffect(() => {
     if (!currentUser) return;
@@ -128,7 +147,7 @@ export const CalificacionesPage = () => {
     return d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
-  if (loading) {
+  if (loading || !courses.length) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <div className="w-14 h-14 rounded-full border-4 border-[#f6811e] border-t-transparent animate-spin" />
@@ -174,7 +193,7 @@ export const CalificacionesPage = () => {
           {
             icon: BookOpen,
             label: 'Cursos evaluados',
-            value: `${attempted} / ${COURSES_META.length}`,
+            value: `${attempted} / ${cursosConNota.length}`,
             color: '#f6811e',
             bg: '#edffe8',
           },
@@ -218,8 +237,10 @@ export const CalificacionesPage = () => {
         </h2>
 
         <div className="space-y-4">
-          {COURSES_META.map((course) => {
-            const grade = grades[course.id];
+          {cursosConNota.map((course) => {
+            // La API guarda course_id como texto, y Firestore lo guarda con el
+            // tipo con el que se mando, asi que se prueban las dos claves.
+            const grade = grades[course.id] ?? grades[String(course.id)];
             const gradeInfo = getGradeInfo(grade?.percentage);
             const pct = grade?.percentage ?? null;
 

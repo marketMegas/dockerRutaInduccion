@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.core.files.storage import default_storage
 from .models import Course, Module, Lesson, UserProgress, Calificacion, Certificado
 from .views import _adjunto_certificado, _cuerpo_certificado, _enviar
+from evaluaciones.models import Evaluacion
 
 class LessonInline(admin.TabularInline):
     model = Lesson
@@ -15,6 +16,19 @@ class ModuleInline(admin.TabularInline):
     fields = ('title', 'order')
     ordering = ('order',)
 
+class EvaluacionInline(admin.TabularInline):
+    # Banco de preguntas del curso. Antes las preguntas estaban escritas en el
+    # JSX del frontend, asi que un curso nuevo creado desde aca salia sin nada
+    # que evaluar. La evaluacion se edita en su propia pagina (tiene preguntas
+    # y opciones anidadas); aca solo se declara que este curso tiene una.
+    model = Evaluacion
+    extra = 1
+    fields = ('titulo', 'puntaje_aprobacion', 'activa', 'orden')
+    ordering = ('orden',)
+    show_change_link = True
+    verbose_name = "Evaluación"
+    verbose_name_plural = "Evaluaciones"
+
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
     list_display = ('id', 'title', 'badge', 'level', 'icon_type', 'duration', 'created_at')
@@ -24,7 +38,7 @@ class CourseAdmin(admin.ModelAdmin):
         ('Contenido', {'fields': ('title', 'description', 'cover_image')}),
         ('Presentación', {'fields': ('icon_type', 'accent_color', 'badge', 'level', 'duration')}),
     )
-    inlines = [ModuleInline]
+    inlines = [ModuleInline, EvaluacionInline]
 
 @admin.register(Module)
 class ModuleAdmin(admin.ModelAdmin):
@@ -46,12 +60,14 @@ class UserProgressAdmin(admin.ModelAdmin):
     search_fields = ('user_id', 'course_id', 'lesson_id')
 
 # Registrada para que el enlace del correo de aprobacion (/admin/courses/calificacion/)
-# sirva de algo: antes las notas solo se veian en la base.
+# sirva de algo: antes las notas solo se veian en la base. Antes de este cambio
+# tampoco se podia ver que evaluacion rindio cada alumno.
 @admin.register(Calificacion)
 class CalificacionAdmin(admin.ModelAdmin):
-    list_display = ('user_name', 'user_email', 'course_name', 'score', 'percentage', 'passed', 'fecha_creacion')
+    list_display = ('user_name', 'user_email', 'course_name', 'score', 'percentage', 'passed', 'evaluacion', 'fecha_creacion')
     list_filter = ('passed', 'course_id')
     search_fields = ('user_id', 'user_name', 'user_email', 'course_id', 'course_name')
+    autocomplete_fields = ('evaluacion',)
 
 @admin.register(Certificado)
 class CertificadoAdmin(admin.ModelAdmin):

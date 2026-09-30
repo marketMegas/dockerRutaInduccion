@@ -263,79 +263,210 @@ def obtener_progreso(request, user_id):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+class _Error(Exception):
+    """Falla con un mensaje y un status propio, en vez de un 500 generico."""
+
+    def __init__(self, mensaje, status=400):
+        super().__init__(mensaje)
+        self.mensaje = mensaje
+        self.status = status
+
+
 @csrf_exempt
 @require_http_methods(["POST"])
 def guardar_calificacion(request):
+    """Guarda la nota de una evaluacion, por dos caminos distintos.
+
+    - Con `respuestas` en el payload: el backend corrige contra la base y el
+      score del cliente se ignora. Es el camino que usa la app.
+    - Sin `respuestas` (cliente viejo, o un bundle viejo cacheado en el
+      navegador): se guarda lo que vino, pero `passed` NO se toca.
+
+    Lo segundo es un cierre, no una funcionalidad. Antes esta vista aceptaba
+    `passed` tal cual, sin preguntas ni respuestas, asi que un POST a mano
+    aprobaba el curso, disparaba el aviso a RH y liberaba el certificado sin
+    haber abierto el quiz. Ahora `passed` solo cambia cuando hay respuestas que
+    corregir, y ni ahi se le cree al cliente.
+
+    Y en el camino viejo `passed` tampoco BAJA: un alumno que ya aprobo y
+    tiene el bundle viejo cacheado repite la evaluacion, y perder el
+    certificado por una request de un cliente obsoleto seria peor que la nota
+    que se pretendia proteger.
+    """
     try:
         data = json.loads(request.body)
-        user_id = data.get('user_id')
-        course_id = str(data.get('course_id'))
-        course_name = data.get('course_name', f'Curso {course_id}')
-        user_name = data.get('user_name', '').strip()
-        user_email = data.get('user_email', '').strip()
-        score = int(data.get('score', 0))
-        total_questions = int(data.get('total_questions', 0))
-        percentage = int(data.get('percentage', 0))
-        passed = bool(data.get('passed', False))
-
-        if not user_id or not course_id:
-            return JsonResponse({'error': 'Faltan campos obligatorios: user_id, course_id'}, status=400)
-
-        # Estado previo: el aviso sale solo en la transicion de reprobar a
-        # aprobar, para no reenviar si el usuario repite el quiz.
-        previa = Calificacion.objects.filter(
-            user_id=user_id, course_id=course_id
-        ).first()
-        ya_aprobo = bool(previa and previa.passed)
-
-        defaults = {
-            'course_name': course_name,
-            'score': score,
-            'total_questions': total_questions,
-            'percentage': percentage,
-            'passed': passed,
-        }
-        # Solo se pisan si vienen informadas: un cliente viejo que no las
-        # mande no debe borrar la identidad que ya estaba guardada.
-        if user_name:
-            defaults['user_name'] = user_name
-        if user_email:
-            defaults['user_email'] = user_email
-
-        calificacion, created = Calificacion.objects.update_or_create(
-            user_id=user_id,
-            course_id=course_id,
-            defaults=defaults
-        )
-
-        # La nota se guarda siempre; el correo solo la primera aprobacion.
-        notificado, error_notificacion = False, None
-        if passed and not ya_aprobo:
-            notificado, error_notificacion = _notificar_aprobacion(request, calificacion)
-
-        return JsonResponse({
-            'status': 'success',
-            'data': {
-                'id': calificacion.id,
-                'user_id': calificacion.user_id,
-                'user_name': calificacion.user_name,
-                'user_email': calificacion.user_email,
-                'course_id': calificacion.course_id,
-                'course_name': calificacion.course_name,
-                'score': calificacion.score,
-                'total_questions': calificacion.total_questions,
-                'percentage': calificacion.percentage,
-                'passed': calificacion.passed,
-                'fecha_creacion': calificacion.fecha_creacion.isoformat()
-            },
-            'notificado': notificado,
-            'notificacion_error': error_notificacion
-        }, status=200 if not created else 201)
-
     except json.JSONDecodeError:
         return JsonResponse({'error': 'JSON inválido'}, status=400)
+
+    try:
+        respuestas = data.get('respuestas')
+        if isinstance(respuestas, dict) and respuestas:
+            return _calificar_con_respuestas(request, data, respuestas)
+        return _guardar_nota_del_cliente(request, data)
+    except _Error as fallo:
+        return JsonResponse({'error': fallo.mensaje}, status=fallo.status)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+def _calificar_con_respuestas(request, data, respuestas):
+    """Corrige las respuestas mandadas por el cliente y guarda la nota.
+
+    Import perezoso a proposito: evaluaciones.views importa de arriba
+    _notificar_aprobacion de este modulo, asi que importar evaluacion
+    aca arriba cerraria el circulo en el arranque.
+    """
+    from evaluaciones.services import (
+        banco_incompleto, curso_de, evaluacion_activa, registrar_calificacion,
+    )
+
+    user_id = str(data.get('user_id') or '').strip()
+    if not user_id:
+        raise _Error('Faltan campos obligatorios: user_id')
+
+    curso = curso_de(data.get('course_id'))
+    if curso is None:
+        raise _Error(
+            f"No se encontro el curso {data.get('course_id')!r}: con respuestas "
+            'la nota se corrige contra un curso real.',
+            404,
+        )
+
+    evaluacion = evaluacion_activa(curso.id)
+    if evaluacion is None:
+        raise _Error('Este curso no tiene una evaluación activa.', 404)
+    if evaluacion.total_preguntas == 0:
+        raise _Error('La evaluación no tiene preguntas cargadas.', 409)
+
+    incompletas = banco_incompleto(evaluacion)
+    if incompletas:
+        raise _Error(
+            f'La evaluación tiene {incompletas} pregunta(s) sin una única opción '
+            'correcta marcada. Avisa a RH antes de reintentar.',
+            409,
+        )
+
+    resultado = registrar_calificacion(
+        curso=curso,
+        evaluacion=evaluacion,
+        respuestas=respuestas,
+        user_id=user_id,
+        user_name=str(data.get('user_name') or '').strip(),
+        user_email=str(data.get('user_email') or '').strip(),
+    )
+
+    notificado, error_notificacion = False, None
+    if resultado['notificar']:
+        notificado, error_notificacion = _notificar_aprobacion(
+            request, resultado['calificacion']
+        )
+
+    calificacion = resultado['calificacion']
+    return JsonResponse({
+        'status': 'success',
+        'data': _serializar_calificacion(calificacion),
+        'puntaje_aprobacion': resultado['puntaje_aprobacion'],
+        'detalle': resultado['detalle'],
+        'notificado': notificado,
+        'notificacion_error': error_notificacion,
+    }, status=201 if resultado['created'] else 200)
+
+
+def _guardar_nota_del_cliente(request, data):
+    """Camino viejo: guarda la nota tal cual, pero sin tocar `passed`."""
+    user_id = data.get('user_id')
+    course_id = str(data.get('course_id'))
+    course_name = data.get('course_name', f'Curso {course_id}')
+    user_name = data.get('user_name', '').strip()
+    user_email = data.get('user_email', '').strip()
+
+    if not user_id or not course_id:
+        raise _Error('Faltan campos obligatorios: user_id, course_id')
+
+    defaults = {
+        'course_name': course_name,
+        'score': int(data.get('score', 0)),
+        'total_questions': int(data.get('total_questions', 0)),
+        'percentage': int(data.get('percentage', 0)),
+    }
+    # Solo se pisan si vienen informadas: un cliente viejo que no las
+    # mande no debe borrar la identidad que ya estaba guardada.
+    if user_name:
+        defaults['user_name'] = user_name
+    if user_email:
+        defaults['user_email'] = user_email
+
+    # 'passed' ausente a proposito: se conserva el que hubiera. Ver el
+    # docstring de guardar_calificacion.
+    calificacion, created = Calificacion.objects.update_or_create(
+        user_id=user_id,
+        course_id=course_id,
+        defaults=defaults
+    )
+
+    # Sin respuestas no hay nada que notificar: por esta via no se puede
+    # aprobar. La nota queda guardada igual, que es lo que importa.
+    return JsonResponse({
+        'status': 'success',
+        'data': _serializar_calificacion(calificacion),
+        'notificado': False,
+        'notificacion_error': None
+    }, status=200 if not created else 201)
+
+
+def _serializar_calificacion(calificacion):
+    return {
+        'id': calificacion.id,
+        'user_id': calificacion.user_id,
+        'user_name': calificacion.user_name,
+        'user_email': calificacion.user_email,
+        'course_id': calificacion.course_id,
+        'course_name': calificacion.course_name,
+        'score': calificacion.score,
+        'total_questions': calificacion.total_questions,
+        'percentage': calificacion.percentage,
+        'passed': calificacion.passed,
+        'fecha_creacion': calificacion.fecha_creacion.isoformat()
+    }
+    # Solo se pisan si vienen informadas: un cliente viejo que no las
+    # mande no debe borrar la identidad que ya estaba guardada.
+    if user_name:
+        defaults['user_name'] = user_name
+    if user_email:
+        defaults['user_email'] = user_email
+
+    # 'passed' ausente a proposito: se conserva el que hubiera. Ver el
+    # docstring de guardar_calificacion.
+    calificacion, created = Calificacion.objects.update_or_create(
+        user_id=user_id,
+        course_id=course_id,
+        defaults=defaults
+    )
+
+    # Sin respuestas no hay nada que notificar: no se puede aprobar por esta
+    # via. La nota queda guardada igual, que es lo que importa.
+    return JsonResponse({
+        'status': 'success',
+        'data': _serializar_calificacion(calificacion),
+        'notificado': False,
+        'notificacion_error': None
+    }, status=200 if not created else 201)
+
+
+def _serializar_calificacion(calificacion):
+    return {
+        'id': calificacion.id,
+        'user_id': calificacion.user_id,
+        'user_name': calificacion.user_name,
+        'user_email': calificacion.user_email,
+        'course_id': calificacion.course_id,
+        'course_name': calificacion.course_name,
+        'score': calificacion.score,
+        'total_questions': calificacion.total_questions,
+        'percentage': calificacion.percentage,
+        'passed': calificacion.passed,
+        'fecha_creacion': calificacion.fecha_creacion.isoformat()
+    }
 
 @require_http_methods(["GET"])
 def obtener_calificaciones(request, user_id):

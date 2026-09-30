@@ -331,39 +331,6 @@ const course3Questions = [
   }
 ];
 
-const course4Questions = [
-  {
-    id: 1,
-    question: "¿Este es el curso de prueba pruebaCreacion28?",
-    options: [
-      { id: 'A', text: "No, es un curso real en producción" },
-      { id: 'B', text: "Sí, es un curso de prueba para validar la creación de nuevos cursos" },
-      { id: 'C', text: "No sé" }
-    ],
-    correctAnswer: 'B'
-  },
-  {
-    id: 2,
-    question: "¿Qué se necesita para aprobar la evaluación de este curso?",
-    options: [
-      { id: 'A', text: "Obtener al menos el 90% de respuestas correctas" },
-      { id: 'B', text: "Responder todas las preguntas sin importar el puntaje" },
-      { id: 'C', text: "Completar únicamente la primera pregunta" }
-    ],
-    correctAnswer: 'A'
-  },
-  {
-    id: 3,
-    question: "Al aprobar el curso de prueba, ¿a dónde lleva el botón final?",
-    options: [
-      { id: 'A', text: "A la lista de Mis Cursos" },
-      { id: 'B', text: "A la página de inicio de sesión" },
-      { id: 'C', text: "Ninguna de las anteriores" }
-    ],
-    correctAnswer: 'A'
-  }
-];
-
 // Helper to highlight 'autoglp' and 'glp' in cian color and lowercase
 const highlightText = (text) => {
   if (!text) return text;
@@ -400,20 +367,35 @@ const QUICK_QUIZ_CONFIG = {
     buttonText: 'SIGUIENTE LECCIÓN',
     questions: course3Questions,
   },
-  4: {
-    name: 'pruebaCreacion28',
-    subtitle: 'Evaluación comercial y normativa',
-    module: 'Módulo Técnico',
-    nextPath: '/cursos',
-    buttonText: 'SIGUIENTE CURSO',
-    questions: course4Questions,
-  },
 };
 
-export const QuizAutoGLP = ({ onPass, courseId = 1 }) => {
+// Un curso sin entrada aqui no tiene preguntas en el codigo. Antes se resolvia
+// con `|| QUICK_QUIZ_CONFIG[1]`, asi que cualquier curso nuevo (creado desde
+// /admin) terminaba evaluando al estudiante con el quiz GLP del curso 1.
+export const QuizAutoGLP = ({ onPass, courseId }) => {
+  const config = QUICK_QUIZ_CONFIG[courseId];
+
+  if (!config) {
+    return (
+      <div className="w-full max-w-2xl mx-auto bg-white rounded-[32px] border border-dashed border-gray-200 px-6 py-16 text-center">
+        <Trophy className="w-12 h-12 mx-auto text-gray-300" />
+        <h2 className="mt-4 text-2xl font-black text-gray-800">
+          Este curso aún no tiene evaluación
+        </h2>
+        <p className="mt-2 text-gray-500">
+          Cuando se carguen las preguntas de este curso, aquí podrás
+          realizarlas.
+        </p>
+      </div>
+    );
+  }
+
+  return <QuizEjecutado onPass={onPass} courseId={courseId} config={config} />;
+};
+
+const QuizEjecutado = ({ onPass, courseId, config }) => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const config = QUICK_QUIZ_CONFIG[courseId] || QUICK_QUIZ_CONFIG[1];
   const questions = config.questions;
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState({});

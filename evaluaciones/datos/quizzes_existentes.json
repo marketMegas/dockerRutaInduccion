@@ -1,0 +1,652 @@
+{
+  "bancos": [
+    {
+      "banco": 1,
+      "descripcion": "Curso 1: ¿Qué es el autoglp? (13 preguntas, técnica y comercial)",
+      "titulo": "Evaluación final",
+      "puntaje_aprobacion": 90,
+      "preguntas": [
+        {
+          "texto": "¿Qué significa AutoGLP?",
+          "contexto": "",
+          "es_larga": false,
+          "opciones": [
+            {
+              "texto": "Gas natural comprimido para vehículos",
+              "es_correcta": false
+            },
+            {
+              "texto": "Gas Licuado Propano utilizado como combustible",
+              "es_correcta": true
+            },
+            {
+              "texto": "Gasolina mezclada con etanol",
+              "es_correcta": false
+            },
+            {
+              "texto": "Diésel de bajo azufre",
+              "es_correcta": false
+            }
+          ]
+        },
+        {
+          "texto": "¿Cuál es una característica principal del autoglp?",
+          "contexto": "",
+          "es_larga": false,
+          "opciones": [
+            {
+              "texto": "Se almacena únicamente como gas a muy alta presión",
+              "es_correcta": false
+            },
+            {
+              "texto": "Es una mezcla principalmente de propano y butano",
+              "es_correcta": true
+            },
+            {
+              "texto": "Solo puede usarse en motores diésel",
+              "es_correcta": false
+            },
+            {
+              "texto": "No requiere ningún sistema de seguridad",
+              "es_correcta": false
+            }
+          ]
+        },
+        {
+          "texto": "¿Cuál es uno de los principales beneficios comerciales del AutoGLP?",
+          "contexto": "",
+          "es_larga": false,
+          "opciones": [
+            {
+              "texto": "Mayor consumo de combustible",
+              "es_correcta": false
+            },
+            {
+              "texto": "Menor autonomía del vehículo",
+              "es_correcta": false
+            },
+            {
+              "texto": "Ahorro en costos de operación frente a combustibles tradicionales",
+              "es_correcta": true
+            },
+            {
+              "texto": "Eliminación total del mantenimiento vehicular",
+              "es_correcta": false
+            }
+          ]
+        },
+        {
+          "texto": "¿Qué elemento es necesario para que un vehículo pueda operar con AutoGLP?",
+          "contexto": "",
+          "es_larga": false,
+          "opciones": [
+            {
+              "texto": "Un sistema de conversión certificado e instalado técnicamente",
+              "es_correcta": true
+            },
+            {
+              "texto": "Cambiar completamente el motor por uno eléctrico",
+              "es_correcta": false
+            },
+            {
+              "texto": "Retirar el tanque de gasolina original",
+              "es_correcta": false
+            },
+            {
+              "texto": "Usar cualquier cilindro doméstico dentro del vehículo",
+              "es_correcta": false
+            }
+          ]
+        },
+        {
+          "texto": "¿Por qué es importante cumplir la normatividad en AutoGLP?",
+          "contexto": "",
+          "es_larga": false,
+          "opciones": [
+            {
+              "texto": "Para evitar el uso de gasolina",
+              "es_correcta": false
+            },
+            {
+              "texto": "Para garantizar seguridad, legalidad y correcta operación del sistema",
+              "es_correcta": true
+            },
+            {
+              "texto": "Porque permite instalar equipos sin revisión",
+              "es_correcta": false
+            },
+            {
+              "texto": "Porque elimina la necesidad de mantenimiento",
+              "es_correcta": false
+            }
+          ]
+        },
+        {
+          "texto": "¿Quién debe realizar la instalación o conversión a AutoGLP?",
+          "contexto": "",
+          "es_larga": false,
+          "opciones": [
+            {
+              "texto": "Cualquier conductor con conocimientos básicos",
+              "es_correcta": false
+            },
+            {
+              "texto": "Un taller o personal técnico autorizado y competente",
+              "es_correcta": true
+            },
+            {
+              "texto": "Un vendedor comercial sin soporte técnico",
+              "es_correcta": false
+            },
+            {
+              "texto": "El usuario final sin supervisión",
+              "es_correcta": false
+            }
+          ]
+        },
+        {
+          "texto": "¿Qué tipo de revisión debe tener un sistema AutoGLP?",
+          "contexto": "",
+          "es_larga": false,
+          "opciones": [
+            {
+              "texto": "Ninguna, porque el GLP no requiere controles",
+              "es_correcta": false
+            },
+            {
+              "texto": "Solo revisión visual una vez en la vida útil del vehículo",
+              "es_correcta": false
+            },
+            {
+              "texto": "Revisiones técnicas y mantenimientos periódicos según requisitos aplicables",
+              "es_correcta": true
+            },
+            {
+              "texto": "Revisión únicamente cuando el vehículo deje de funcionar",
+              "es_correcta": false
+            }
+          ]
+        },
+        {
+          "texto": "¿Cuál es una diferencia general entre GLP y GNV?",
+          "contexto": "",
+          "es_larga": false,
+          "opciones": [
+            {
+              "texto": "El GLP trabaja normalmente a menor presión que el GNV",
+              "es_correcta": true
+            },
+            {
+              "texto": "El GNV se almacena como líquido a baja presión",
+              "es_correcta": false
+            },
+            {
+              "texto": "El GLP solo sirve para cocina y no para vehículos",
+              "es_correcta": false
+            },
+            {
+              "texto": "Ambos son exactamente el mismo combustible",
+              "es_correcta": false
+            }
+          ]
+        },
+        {
+          "texto": "En una venta comercial de AutoGLP, ¿qué se debe comunicar al cliente?",
+          "contexto": "",
+          "es_larga": false,
+          "opciones": [
+            {
+              "texto": "Solo el precio de la conversión",
+              "es_correcta": false
+            },
+            {
+              "texto": "Beneficios, seguridad, normatividad, ahorro estimado y mantenimiento",
+              "es_correcta": true
+            },
+            {
+              "texto": "Que no existen requisitos legales",
+              "es_correcta": false
+            },
+            {
+              "texto": "Que el sistema no necesita instalación profesional",
+              "es_correcta": false
+            }
+          ]
+        },
+        {
+          "texto": "¿Cuál es una práctica responsable al promover AutoGLP?",
+          "contexto": "",
+          "es_larga": false,
+          "opciones": [
+            {
+              "texto": "Prometer ahorros sin explicar condiciones de uso",
+              "es_correcta": false
+            },
+            {
+              "texto": "Omitir información sobre seguridad y normatividad",
+              "es_correcta": false
+            },
+            {
+              "texto": "Informar de manera clara los beneficios, requisitos técnicos y cuidados del sistema",
+              "es_correcta": true
+            },
+            {
+              "texto": "Recomendar instalaciones no certificadas para bajar costos",
+              "es_correcta": false
+            }
+          ]
+        },
+        {
+          "texto": "Un cliente lleva su vehículo con sistema autoglp LOVATO a una estación de servicio. Al momento del llenado, el operador constata que el cilindro quedó cargado al 96% de su capacidad total. Considerando los protocolos del manual, ¿cuál es la secuencia de acciones CORRECTA que debe seguir el técnico al ser informado de esta situación?",
+          "contexto": "",
+          "es_larga": true,
+          "opciones": [
+            {
+              "texto": "Vaciar inmediatamente el excedente del cilindro en la estación de servicio utilizando la válvula de alivio, ya que el 6% adicional representa un riesgo inminente de explosión por sobrepresión y debe eliminarse antes de mover el vehículo.",
+              "es_correcta": false
+            },
+            {
+              "texto": "Informar al cliente que NO debe exponer el vehículo a la luz solar directa hasta que el consumo normal del motor reduzca el nivel de combustible por debajo del límite máximo permitido, y remitirlo al instalador o centro autorizado para el seguimiento del caso.",
+              "es_correcta": true
+            },
+            {
+              "texto": "Activar el modo gasolina desde el conmutador One-Touch para consumir únicamente gasolina hasta normalizar el nivel del cilindro GLP, ya que en estado de sobrellenado el sistema LOVATO inhibe automáticamente la inyección de gas por seguridad",
+              "es_correcta": false
+            },
+            {
+              "texto": "Purgar el exceso de GLP a través del regulador de presión del sistema de inyección secuencial, ya que este componente está diseñado específicamente para manejar excesos de carga y liberar la presión adicional de forma controlada.",
+              "es_correcta": false
+            }
+          ]
+        },
+        {
+          "texto": "Un técnico está realizando la entrega de un vehículo recién convertido al sistema AutoGLP con inyección secuencial LOVATO. El cliente reporta que al arrancar el vehículo después de dejarlo apagado toda la noche en modo GLP, el sistema arranca directamente en modo gasolina con el LED rojo encendido. El cliente pregunta si el sistema está fallando. ¿Cuál es el diagnóstico técnico CORRECTO basado en el funcionamiento documentado de la centralita?",
+          "contexto": "",
+          "es_larga": true,
+          "opciones": [
+            {
+              "texto": "El sistema efectivamente presenta una falla en la memoria no volátil de la centralita, ya que según el manual, el sistema debe conservar el estado del carburante al momento del apagado. Si arranca en un modo diferente al que estaba al apagar, indica pérdida de datos de configuración y requiere reprogramación del módulo de control.",
+              "es_correcta": false
+            },
+            {
+              "texto": "El comportamiento es completamente normal y esperado: si el vehículo fue apagado en modo GLP, la centralita debió haber memorizado ese estado y al arrancar debería funcionar en GLP. Si arranca en gasolina, significa que el cliente apagó el vehículo cuando el sistema ya había conmutado automáticamente a gasolina por bajo nivel de GLP, y la centralita memorizó correctamente ese último estado.",
+              "es_correcta": true
+            },
+            {
+              "texto": "El LED rojo de gasolina al arranque es una condición estándar de seguridad del sistema LOVATO: todos los vehículos con inyección secuencial siempre arrancan en gasolina durante los primeros 30 segundos para proteger el motor en frío, independientemente del estado memorizado por la centralita.",
+              "es_correcta": false
+            },
+            {
+              "texto": "La falla está en el conmutador One-Touch, que al perder alimentación eléctrica durante el apagado resetea su posición al estado predeterminado de fábrica (gasolina), lo que invalida la función de memorización de la centralita. Se debe revisar el circuito de alimentación permanente del módulo.",
+              "es_correcta": false
+            }
+          ]
+        },
+        {
+          "texto": "Durante una inspección técnica, un cliente reporta que al presionar el conmutador One-Touch para cambiar de gasolina a autoglp, el sistema emite el sonido del Buzzer pero los 4 LED verdes del indicador de nivel NO se encienden. El motor sigue funcionando normalmente. Analizando el funcionamiento documentado del sistema de inyección secuencial LOVATO, ¿cuál de las siguientes interpretaciones técnicas describe con mayor precisión la causa MÁS probable de este comportamiento?",
+          "contexto": "",
+          "es_larga": true,
+          "opciones": [
+            {
+              "texto": "El sistema confirmó el cambio a autoglp mediante el Buzzer, pero los LED verdes apagados indican que el cilindro está vacío o con nivel insuficiente para operar. En este estado, el sistema LOVATO mantiene el motor funcionando en autoglp de reserva hasta el apagado completo del combustible, momento en el que conmuta automáticamente a gasolina sin intervención del usuario.",
+              "es_correcta": false
+            },
+            {
+              "texto": "El comportamiento sugiere una falla en el circuito de los LED del conmutador, completamente independiente del circuito de inyección de gas. El motor puede estar funcionando en autoglp correctamente a pesar de que el indicador visual no opera, ya que el Buzzer confirmó la conmutación. Se requiere inspección del circuito de visualización del conmutador sin interferir con la inyección.",
+              "es_correcta": true
+            },
+            {
+              "texto": "El sonido del Buzzer sin encendido de LED verdes indica que el sistema reconoció la pulsación pero la centralita rechazó la conmutación por detección de anomalía en el sensor de presión del reductor. Este es el protocolo de falla segura del sistema LOVATO: el Buzzer confirma el intento y los LED apagados indican el rechazo de la conmutación.",
+              "es_correcta": false
+            },
+            {
+              "texto": "Los 4 LED verdes apagados durante el funcionamiento en autoglp significan que el nivel del cilindro está por encima del 90% de capacidad (sobrellenado), condición en la que el sistema desactiva la indicación visual como medida de seguridad para alertar al conductor de que debe evitar el sol directo y acudir al centro autorizado.",
+              "es_correcta": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "banco": 2,
+      "descripcion": "Curso 2: Proceso comercial (10 preguntas, venta consultiva)",
+      "titulo": "Evaluación final",
+      "puntaje_aprobacion": 90,
+      "preguntas": [
+        {
+          "texto": "¿Cuál es el objetivo principal de la venta consultiva?",
+          "contexto": "",
+          "es_larga": false,
+          "opciones": [
+            {
+              "texto": "Vender rápidamente sin hacer muchas preguntas.",
+              "es_correcta": false
+            },
+            {
+              "texto": "Convencer al cliente de comprar aunque no tenga necesidad.",
+              "es_correcta": false
+            },
+            {
+              "texto": "Entender las necesidades del cliente y ofrecer una solución adecuada.",
+              "es_correcta": true
+            },
+            {
+              "texto": "Hablar solo de precio y promociones.",
+              "es_correcta": false
+            }
+          ]
+        },
+        {
+          "texto": "En una venta consultiva de AutoGLP, la primera acción del asesor comercial debe ser:",
+          "contexto": "",
+          "es_larga": false,
+          "opciones": [
+            {
+              "texto": "Presentar inmediatamente el precio del galón.",
+              "es_correcta": false
+            },
+            {
+              "texto": "Hacer preguntas para conocer el consumo, tipo de vehículo y operación del cliente.",
+              "es_correcta": true
+            },
+            {
+              "texto": "Comparar negativamente todos los combustibles.",
+              "es_correcta": false
+            },
+            {
+              "texto": "Ofrecer descuentos sin analizar el caso.",
+              "es_correcta": false
+            }
+          ]
+        },
+        {
+          "texto": "¿Cuál de las siguientes preguntas ayuda más a identificar una oportunidad comercial para AutoGLP?",
+          "contexto": "",
+          "es_larga": false,
+          "opciones": [
+            {
+              "texto": "¿Quiere comprar hoy?",
+              "es_correcta": false
+            },
+            {
+              "texto": "¿Cuánto combustible consume actualmente su flota al mes?",
+              "es_correcta": true
+            },
+            {
+              "texto": "¿Le gusta el color del cilindro?",
+              "es_correcta": false
+            },
+            {
+              "texto": "¿Prefiere pagar en efectivo?",
+              "es_correcta": false
+            }
+          ]
+        },
+        {
+          "texto": "¿Cuál es uno de los principales argumentos comerciales del AutoGLP frente a combustibles tradicionales?",
+          "contexto": "",
+          "es_larga": false,
+          "opciones": [
+            {
+              "texto": "Que no requiere ningún tipo de mantenimiento.",
+              "es_correcta": false
+            },
+            {
+              "texto": "Que puede representar ahorro operativo y una alternativa energética más limpia.",
+              "es_correcta": true
+            },
+            {
+              "texto": "Que todos los vehículos ya vienen convertidos de fábrica.",
+              "es_correcta": false
+            },
+            {
+              "texto": "Que no necesita normas ni regulación.",
+              "es_correcta": false
+            }
+          ]
+        },
+        {
+          "texto": "En venta consultiva, cuando un cliente dice “me preocupa la seguridad del AutoGLP”, el asesor debe:",
+          "contexto": "",
+          "es_larga": false,
+          "opciones": [
+            {
+              "texto": "Ignorar la objeción y cambiar de tema.",
+              "es_correcta": false
+            },
+            {
+              "texto": "Decir que no hay ningún riesgo sin explicar.",
+              "es_correcta": false
+            },
+            {
+              "texto": "Explicar normas, instalación técnica, mantenimiento y protocolos de seguridad.",
+              "es_correcta": true
+            },
+            {
+              "texto": "Responder que otros clientes no se quejan.",
+              "es_correcta": false
+            }
+          ]
+        },
+        {
+          "texto": "¿Cuál es una estrategia adecuada para vender AutoGLP a empresas con flotas vehiculares?",
+          "contexto": "",
+          "es_larga": false,
+          "opciones": [
+            {
+              "texto": "Ofrecer solo publicidad general.",
+              "es_correcta": false
+            },
+            {
+              "texto": "Hacer un diagnóstico del consumo actual, costos, rutas y posible ahorro.",
+              "es_correcta": true
+            },
+            {
+              "texto": "Hablar únicamente del logo de la marca.",
+              "es_correcta": false
+            },
+            {
+              "texto": "Evitar mencionar la conversión vehicular.",
+              "es_correcta": false
+            }
+          ]
+        },
+        {
+          "texto": "¿Qué significa identificar el “dolor” del cliente en venta consultiva?",
+          "contexto": "",
+          "es_larga": false,
+          "opciones": [
+            {
+              "texto": "Saber qué problema, costo o necesidad tiene el cliente.",
+              "es_correcta": true
+            },
+            {
+              "texto": "Presionar al cliente para cerrar rápido.",
+              "es_correcta": false
+            },
+            {
+              "texto": "Hablar solo de los beneficios de la empresa.",
+              "es_correcta": false
+            },
+            {
+              "texto": "Comparar precios sin contexto.",
+              "es_correcta": false
+            }
+          ]
+        },
+        {
+          "texto": "¿Cuál de estas opciones es una buena práctica al presentar una propuesta de AutoGLP?",
+          "contexto": "",
+          "es_larga": false,
+          "opciones": [
+            {
+              "texto": "Mostrar beneficios generales sin datos.",
+              "es_correcta": false
+            },
+            {
+              "texto": "Personalizar la propuesta con ahorro estimado, consumo, operación y beneficios.",
+              "es_correcta": true
+            },
+            {
+              "texto": "Enviar la misma propuesta a todos los clientes.",
+              "es_correcta": false
+            },
+            {
+              "texto": "Evitar responder preguntas técnicas.",
+              "es_correcta": false
+            }
+          ]
+        },
+        {
+          "texto": "En el proceso comercial, ¿por qué es importante hacer seguimiento después de una visita o cotización?",
+          "contexto": "",
+          "es_larga": false,
+          "opciones": [
+            {
+              "texto": "Porque demuestra acompañamiento y ayuda a resolver dudas antes del cierre.",
+              "es_correcta": true
+            },
+            {
+              "texto": "Porque reemplaza la necesidad de explicar bien el producto.",
+              "es_correcta": false
+            },
+            {
+              "texto": "Porque obliga al cliente a comprar.",
+              "es_correcta": false
+            },
+            {
+              "texto": "Porque solo sirve para insistir en el precio.",
+              "es_correcta": false
+            }
+          ]
+        },
+        {
+          "texto": "¿Cuál sería una propuesta de valor adecuada para promocionar AutoGLP en Colombia?",
+          "contexto": "",
+          "es_larga": false,
+          "opciones": [
+            {
+              "texto": "“Es barato y nada más”.",
+              "es_correcta": false
+            },
+            {
+              "texto": "“Es una alternativa energética que puede ayudar a reducir costos operativos, mejorar eficiencia y cumplir condiciones técnicas y normativas”.",
+              "es_correcta": true
+            },
+            {
+              "texto": "“No necesita análisis ni asesoría”.",
+              "es_correcta": false
+            },
+            {
+              "texto": "“Funciona igual para todos los clientes sin importar su operación”.",
+              "es_correcta": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "banco": 3,
+      "descripcion": "Curso 3: Postventa y CRM (5 preguntas, con casos de Carlos Mendoza)",
+      "titulo": "Evaluación del módulo 3",
+      "puntaje_aprobacion": 90,
+      "preguntas": [
+        {
+          "texto": "¿En qué etapas del ciclo de posventa falló el proceso con Carlos durante los primeros meses?",
+          "contexto": "CASO: El cliente que nunca regresó... hasta que cambió su asesor, \n\n Carlos Mendoza adquirió en AutoGLP la conversión de su taxi a GLP en enero. El servicio de venta fue excelente. \n\nSin embargo, en los meses siguientes nadie lo contactó proactivamente. Cuando tuvo una falla menor, llamó al número general y tardó 3 días en recibir respuesta. Resolvió el problema con un taller externo. \n\n En julio, su nueva asesora asignada lo contactó, se disculpó por la experiencia anterior y agendó una revisión gratuita. Le envió un recordatorio de mantenimiento a los 30 días, y 60 días después lo llamó para informarle sobre el nuevo kit de optimización GLP disponible. \n\n Carlos no solo regresó: trajo a dos compañeros taxistas que también convirtieron sus vehículos.",
+          "es_larga": false,
+          "opciones": [
+            {
+              "texto": "Registro tardio en crm",
+              "es_correcta": false
+            },
+            {
+              "texto": "Primer contacto tardio",
+              "es_correcta": true
+            },
+            {
+              "texto": "Falto asesoria previa",
+              "es_correcta": false
+            }
+          ]
+        },
+        {
+          "texto": "¿Qué acciones concretas de la nueva asesora corresponden a una posventa proactiva?",
+          "contexto": "Carlos es un taxista que convirtió su vehículo a glp hace tres meses. En la etapa inicial, el asesor no registró a tiempo sus datos en el CRM, omitió realizar el primer contacto de posventa dentro de las 48 horas y no le brindó asesoría sobre los mantenimientos estipulados en el manual. Como consecuencia, Carlos tuvo dudas de funcionamiento y el sistema experimentó una descalibración menor que no fue atendida a tiempo, lo que generó molestia. Posteriormente, una nueva asesora tomó el caso, ingresó de inmediato los reportes al CRM, contactó proactivamente a Carlos para indagar posibles deterioros del sistema, le explicó los tiempos de revisión del manual y logró recuperar la satisfacción del cliente, obteniendo incluso nuevos referidos.",
+          "es_larga": false,
+          "opciones": [
+            {
+              "texto": "Ingreso inmediato a crm/ Reporte de Cliente asignado para posventa",
+              "es_correcta": true
+            },
+            {
+              "texto": "Indagas posibles deterioro del sistema",
+              "es_correcta": false
+            },
+            {
+              "texto": "Generar un referido por cliente satisfecho",
+              "es_correcta": false
+            }
+          ]
+        },
+        {
+          "texto": "¿Cómo habrías manejado tú la situación desde el primer contacto post-entrega?",
+          "contexto": "Carlos es un taxista que convirtió su vehículo a glp hace tres meses. En la etapa inicial, el asesor no registró a tiempo sus datos en el CRM, omitió realizar el primer contacto de posventa dentro de las 48 horas y no le brindó asesoría sobre los mantenimientos estipulados en el manual. Como consecuencia, Carlos tuvo dudas de funcionamiento y el sistema experimentó una descalibración menor que no fue atendida a tiempo, lo que generó molestia. Posteriormente, una nueva asesora tomó el caso, ingresó de inmediato los reportes al CRM, contactó proactivamente a Carlos para indagar posibles deterioros del sistema, le explicó los tiempos de revisión del manual y logró recuperar la satisfacción del cliente, obteniendo incluso nuevos referidos.",
+          "es_larga": false,
+          "opciones": [
+            {
+              "texto": "No tomar contacto del cliente",
+              "es_correcta": false
+            },
+            {
+              "texto": "Ingresar y reportar client area posventa",
+              "es_correcta": false
+            },
+            {
+              "texto": "Asesorar correctamente, los tiempos de revisión y mantenimiento estipulados en el manual de usuario entregado al momento del cierre de la venta.",
+              "es_correcta": true
+            }
+          ]
+        },
+        {
+          "texto": "¿Qué registros en el CRM habrían sido clave para que esta situación no ocurriera?",
+          "contexto": "Carlos es un taxista que convirtió su vehículo a glp hace tres meses. En la etapa inicial, el asesor no registró a tiempo sus datos en el CRM, omitió realizar el primer contacto de posventa dentro de las 48 horas y no le brindó asesoría sobre los mantenimientos estipulados en el manual. Como consecuencia, Carlos tuvo dudas de funcionamiento y el sistema experimentó una descalibración menor que no fue atendida a tiempo, lo que generó molestia. Posteriormente, una nueva asesora tomó el caso, ingresó de inmediato los reportes al CRM, contactó proactivamente a Carlos para indagar posibles deterioros del sistema, le explicó los tiempos de revisión del manual y logró recuperar la satisfacción del cliente, obteniendo incluso nuevos referidos.",
+          "es_larga": false,
+          "opciones": [
+            {
+              "texto": "Modelo del carro",
+              "es_correcta": false
+            },
+            {
+              "texto": "Referencias comerciales",
+              "es_correcta": false
+            },
+            {
+              "texto": "Datos de contacto y labores de mantenimiento programadas",
+              "es_correcta": true
+            }
+          ]
+        },
+        {
+          "texto": "¿Qué indicadores de los estándares AutoGLP se incumplieron en la etapa inicial?",
+          "contexto": "Carlos es un taxista que convirtió su vehículo a glp hace tres meses. En la etapa inicial, el asesor no registró a tiempo sus datos en el CRM, omitió realizar el primer contacto de posventa dentro de las 48 horas y no le brindó asesoría sobre los mantenimientos estipulados en el manual. Como consecuencia, Carlos tuvo dudas de funcionamiento y el sistema experimentó una descalibración menor que no fue atendida a tiempo, lo que generó molestia. Posteriormente, una nueva asesora tomó el caso, ingresó de inmediato los reportes al CRM, contactó proactivamente a Carlos para indagar posibles deterioros del sistema, le explicó los tiempos de revisión del manual y logró recuperar la satisfacción del cliente, obteniendo incluso nuevos referidos.",
+          "es_larga": false,
+          "opciones": [
+            {
+              "texto": "Falta de gestion documental a tiempo en el sistema y falta de asesoria sobre mantenimiento",
+              "es_correcta": true
+            },
+            {
+              "texto": "No se realizo preconversion",
+              "es_correcta": false
+            },
+            {
+              "texto": "No se realizo inspeccion correcta del sistema anterior",
+              "es_correcta": false
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

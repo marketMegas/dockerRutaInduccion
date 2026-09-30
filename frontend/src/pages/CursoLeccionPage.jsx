@@ -16,8 +16,6 @@ import { Course3Leccion2Content } from '../components/course/lessons/Course3Lecc
 import { Course3Leccion3Content } from '../components/course/lessons/Course3Leccion3Content';
 import { Course3Leccion4Content } from '../components/course/lessons/Course3Leccion4Content';
 import { Course3Leccion5Content } from '../components/course/lessons/Course3Leccion5Content';
-import { Course4Leccion2Content } from '../components/course/lessons/Course4Leccion2Content';
-import { Course4Leccion3Content } from '../components/course/lessons/Course4Leccion3Content';
 import CertificadoGenerator from '../assets/CertificadoGenerator';
 
 export const CursoLeccionPage = () => {
@@ -199,11 +197,6 @@ export const CursoLeccionPage = () => {
       if (parsedLeccionId === 5) return <Course3Leccion5Content />;
     }
 
-    if (course.id === 4) {
-      if (parsedLeccionId === 2) return <Course4Leccion2Content />;
-      if (parsedLeccionId === 3) return <Course4Leccion3Content />;
-    }
-    
     return (
       <div className="py-6 flex flex-col gap-8 w-full">
         <div className="bg-white rounded-[20px] border border-gray-100 p-6 sm:p-8 shadow-sm text-center">

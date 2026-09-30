@@ -7,7 +7,8 @@ from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 
-from .models import Calificacion, Certificado
+from .models import Calificacion, Certificado, Course
+from evaluaciones.models import Evaluacion, Opcion, Pregunta
 
 DESTINATARIOS = ['interno@megas.co']
 
@@ -17,9 +18,50 @@ DESTINATARIOS = ['interno@megas.co']
     EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
 )
 class NotificacionAprobacionTest(TestCase):
-    """El aviso sale solo en la primera transicion de reprobar a aprobar."""
+    """El aviso sale solo en la primera transicion de reprobar a aprobar.
+
+    Las notas se aprueban mandando `respuestas`: el backend las corrige. Antes
+    el cliente mandaba `passed` ya calculado y esta clase no tenia ningun
+    banco de preguntas del que depender.
+    """
 
     url = '/api/cursos/calificaciones/'
+    TOTAL_PREGUNTAS = 5
+
+    def setUp(self):
+        # pk=1 para que el payload de los tests siga hablando del curso 1.
+        self.curso = Course.objects.create(
+            pk=1, title='Curso 1: ¿Qué es el autoglp?', description='.',
+        )
+        self.evaluacion = self._crear_evaluacion()
+
+    def _crear_evaluacion(self):
+        evaluacion = Evaluacion.objects.create(
+            course=self.curso, titulo='Evaluación final',
+            puntaje_aprobacion=90, activa=True,
+        )
+        for i in range(1, self.TOTAL_PREGUNTAS + 1):
+            pregunta = Pregunta.objects.create(
+                evaluacion=evaluacion, texto=f'Pregunta {i}', orden=i,
+            )
+            for j, correcta in enumerate([True, False, False, False], start=1):
+                Opcion.objects.create(
+                    pregunta=pregunta, texto=f'Opción {j}',
+                    es_correcta=correcta, orden=j,
+                )
+        return evaluacion
+
+    def _aprobadas(self):
+        return {
+            str(p.id): p.opcion_correcta.id
+            for p in self.evaluacion.preguntas_ordenadas
+        }
+
+    def _suspendidas(self):
+        return {
+            str(p.id): p.opciones_ordenadas[-1].id
+            for p in self.evaluacion.preguntas_ordenadas
+        }
 
     def _postar(self, **extra):
         payload = {
@@ -27,11 +69,7 @@ class NotificacionAprobacionTest(TestCase):
             'user_name': 'Ana Perez',
             'user_email': 'ana@ejemplo.co',
             'course_id': '1',
-            'course_name': 'Que es el autoglp',
-            'score': 0,
-            'total_questions': 5,
-            'percentage': 0,
-            'passed': False,
+            'course_name': 'Curso 1: ¿Qué es el autoglp?',
         }
         payload.update(extra)
         return self.client.post(
@@ -40,8 +78,14 @@ class NotificacionAprobacionTest(TestCase):
             content_type='application/json',
         )
 
+    def _aprobar(self, **extra):
+        return self._postar(respuestas=self._aprobadas(), **extra)
+
+    def _reprobar(self, **extra):
+        return self._postar(respuestas=self._suspendidas(), **extra)
+
     def test_reprobar_no_notifica_pero_si_guarda(self):
-        respuesta = self._postar(score=2, percentage=40)
+        respuesta = self._reprobar()
 
         self.assertEqual(respuesta.status_code, 201)
         self.assertEqual(len(mail.outbox), 0)
@@ -49,7 +93,7 @@ class NotificacionAprobacionTest(TestCase):
         self.assertFalse(Calificacion.objects.get().passed)
 
     def test_primera_aprobacion_notifica_a_internos(self):
-        respuesta = self._postar(score=5, percentage=100, passed=True)
+        respuesta = self._aprobar()
 
         self.assertEqual(respuesta.status_code, 201)
         self.assertTrue(respuesta.json()['notificado'])
@@ -60,13 +104,13 @@ class NotificacionAprobacionTest(TestCase):
 
         cuerpo = mail.outbox[0].body
         self.assertIn('Ana Perez', cuerpo)
-        self.assertIn('Que es el autoglp', cuerpo)
+        self.assertIn('Curso 1: ¿Qué es el autoglp?', cuerpo)
 
     def test_repetir_aprobacion_no_reenvia(self):
-        self._postar(score=5, percentage=100, passed=True)
+        self._aprobar()
         mail.outbox.clear()
 
-        respuesta = self._postar(score=5, percentage=100, passed=True)
+        respuesta = self._aprobar()
 
         self.assertEqual(respuesta.status_code, 200)
         self.assertFalse(respuesta.json()['notificado'])
@@ -74,26 +118,26 @@ class NotificacionAprobacionTest(TestCase):
         self.assertEqual(Calificacion.objects.count(), 1)
 
     def test_aprobar_despues_de_reprobar_sigue_notificando(self):
-        self._postar(score=2, percentage=40)
+        self._reprobar()
         mail.outbox.clear()
 
-        respuesta = self._postar(score=5, percentage=100, passed=True)
+        respuesta = self._aprobar()
 
         self.assertTrue(respuesta.json()['notificado'])
         self.assertEqual(len(mail.outbox), 1)
 
     def test_identidad_queda_guardada(self):
-        self._postar(score=5, percentage=100, passed=True)
+        self._aprobar()
 
         calificacion = Calificacion.objects.get()
         self.assertEqual(calificacion.user_name, 'Ana Perez')
         self.assertEqual(calificacion.user_email, 'ana@ejemplo.co')
 
     def test_cliente_sin_identidad_no_borra_la_que_habia(self):
-        self._postar(score=5, percentage=100, passed=True)
+        self._aprobar()
 
         # Cliente viejo que no manda user_name ni user_email.
-        self._postar(score=4, percentage=80, passed=False, user_name='', user_email='')
+        self._aprobar(user_name='', user_email='')
 
         calificacion = Calificacion.objects.get()
         self.assertEqual(calificacion.user_name, 'Ana Perez')
@@ -101,13 +145,59 @@ class NotificacionAprobacionTest(TestCase):
 
     def test_correo_caido_no_tira_la_calificacion(self):
         with self.settings(EMAIL_BACKEND='courses.tests.BackendQueExplota'):
-            respuesta = self._postar(score=5, percentage=100, passed=True)
+            respuesta = self._aprobar()
 
         self.assertEqual(respuesta.status_code, 201)
         self.assertFalse(respuesta.json()['notificado'])
         self.assertIn('smtp caido', respuesta.json()['notificacion_error'])
         # La nota quedo guardada igual: es lo que importa.
         self.assertTrue(Calificacion.objects.get().passed)
+
+    # ── Endurecimiento: `passed` del cliente ya no alcanza ──────────────
+
+    def test_sin_respuestas_no_aproba_aunque_diga_passed(self):
+        # El agujero que se cerro: antes este POST aprobaba el curso,
+        # disparaba el aviso a RH y liberaba el certificado sin abrir el quiz.
+        respuesta = self._postar(score=5, percentage=100, passed=True)
+
+        self.assertEqual(respuesta.status_code, 201)
+        self.assertFalse(respuesta.json()['data']['passed'])
+        self.assertEqual(len(mail.outbox), 0)
+        # La nota que vino si se guarda, para no perder datos del cliente.
+        self.assertEqual(Calificacion.objects.get().score, 5)
+        self.assertFalse(Calificacion.objects.get().passed)
+
+    def test_sin_respuestas_no_degrada_un_que_ya_aprobo(self):
+        # Un alumno con el bundle viejo cacheado repite la evaluación: si
+        # `passed` bajara, perdería el certificado.
+        self._aprobar()
+
+        respuesta = self._postar(score=0, percentage=0, passed=False)
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertTrue(respuesta.json()['data']['passed'])
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertTrue(Calificacion.objects.get().passed)
+
+    def test_sin_respuestas_no_avisa_aunque_diga_passed(self):
+        # El correo solo sale por la vía corregida. La nota sin respuestas queda
+        # guardada pero no genera aviso.
+        respuesta = self._postar(score=5, percentage=100, passed=True,
+                                 user_id='uid-nuevo')
+
+        self.assertFalse(respuesta.json()['notificado'])
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertFalse(
+            Calificacion.objects.get(user_id='uid-nuevo').passed
+        )
+
+    def test_respuestas_de_un_curso_inexistente_no_aprueban(self):
+        # Con respuestas la nota se corrige contra un curso real; un id que no
+        # existe no puede convertirse en "aprobado" por el camino viejo.
+        respuesta = self._postar(respuestas=self._aprobadas(), course_id='9999')
+
+        self.assertEqual(respuesta.status_code, 404)
+        self.assertEqual(Calificacion.objects.count(), 0)
 
 
 class BackendQueExplota:
