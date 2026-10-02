@@ -87,15 +87,9 @@ export const CursoDetailPage = () => {
         </div>
 
         {/* 2. Título principal */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h1 className="text-3xl font-bold text-gray-900 leading-tight">
-            1. Introducción: {course.title}
-          </h1>
-          <button className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-[#f6811e] text-[#f6811e] rounded-lg font-medium transition-colors hover:bg-green-50 whitespace-nowrap w-full sm:w-auto text-sm">
-            <CheckCircle2 className="w-4 h-4" />
-            Marcar como completada
-          </button>
-        </div>
+        <h1 className="text-3xl font-bold text-gray-900 leading-tight">
+          1. Introducción: {course.title}
+        </h1>
 
         {/* 3. Reproductor de Video (YouTube Real) */}
         <div className="relative aspect-video w-full bg-black rounded-[24px] overflow-hidden shadow-2xl border-[6px] border-white/10">

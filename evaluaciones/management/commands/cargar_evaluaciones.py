@@ -1,12 +1,36 @@
 """Carga uno de los bancos de preguntas del JSON a un curso.
 
-Las preguntas de los 3 cursos vivian escritas en el frontend
-(frontend/src/components/QuizAutoGLP.jsx, antes de existir este modulo) en tres
-arrays fijos. Este comando las trae a la base, de a un banco por curso:
-
     manage.py cargar_evaluaciones --listar
     manage.py cargar_evaluaciones --curso 1 --banco 1
     manage.py cargar_evaluaciones --curso 2 --banco 2 --puntaje 80
+
+El archivo evaluaciones/datos/quizzes_existentes.json esta VACIO a proposito:
+`bancos: []`. Empezaba con los tres bancos del frontend (28 preguntas sobre
+AutoGLP y venta consultiva, escritas en QuizAutoGLP.jsx, ya borrado), pero esa
+tematica dejo de aplicar y se elimino. Lo que queda del comando es la via para
+cargar bancos NUEVOS: se escribe el banco en el JSON, se corre --listar para
+verlo, y despues se carga contra el pk del curso.
+
+Formato de cada entrada (los `es_correcta` son obligatorios y tiene que haber
+exactamente uno por pregunta, o el comando no carga nada):
+
+    {
+      "banco": 1,
+      "titulo": "Evaluacion final",
+      "descripcion": "Lo que se muestra en --listar",
+      "puntaje_aprobacion": 90,
+      "preguntas": [
+        {
+          "texto": "...",
+          "contexto": "Parrafo de apoyo. Opcional, con saltos de linea reales.",
+          "es_larga": false,
+          "opciones": [{"texto": "...", "es_correcta": true}]
+        }
+      ]
+    }
+
+Las preguntas tambien se pueden escribir directo en /admin, que es lo normal.
+El JSON es solo para cargas de una vez.
 
 Por que un comando y no una migracion automatica: los ids de curso no son
 estables. En la base de trabajo el pk 2 se titula "Curso 1", y una migracion
@@ -98,9 +122,15 @@ class Command(BaseCommand):
 
         banco = next((b for b in bancos if b['banco'] == opciones['banco']), None)
         if banco is None:
+            # Sin este if, el mensaje queda en "Hay: " a secas cuando el JSON
+            # esta vacio, que no dice nada de por si el error es otro.
+            disponibles = (
+                ', '.join(str(b['banco']) for b in bancos)
+                if bancos
+                else 'ninguno, el JSON de seed está vacío (bancos: [])'
+            )
             raise CommandError(
-                f'No existe el banco {opciones["banco"]}. Hay: '
-                + ', '.join(str(b['banco']) for b in bancos)
+                f'No existe el banco {opciones["banco"]}. Hay: {disponibles}'
             )
 
         curso = Course.objects.filter(pk=opciones['curso']).first()
@@ -115,6 +145,12 @@ class Command(BaseCommand):
 
     def _listar(self, bancos):
         self.stdout.write(self.style.MIGRATE_HEADING('Bancos disponibles'))
+        if not bancos:
+            self.stdout.write(
+                '  (ninguno) El JSON de seed está vacío: las preguntas se '
+                'escriben en /admin o se agrega un banco al JSON y se corre '
+                'este comando.'
+            )
         for banco in bancos:
             self.stdout.write(
                 f'  banco {banco["banco"]}: {len(banco["preguntas"])} preguntas, '

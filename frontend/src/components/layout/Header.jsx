@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Bell, Menu, LogOut, ChevronDown } from 'lucide-react';
+import { Search, Menu, LogOut, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -65,17 +65,8 @@ export const Header = ({ setIsSidebarOpen }) => {
         </div>
       </div>
 
-      {/* 3. Lado Derecho: Notificaciones + Perfil */}
+      {/* 3. Lado Derecho: Perfil */}
       <div className="flex-1 flex items-center justify-end gap-4 sm:gap-6">
-        {/* Campana de notificaciones */}
-        <button className="text-gray-400 hover:text-[#5fbd44] transition-colors relative">
-          <Bell className="w-5 h-5" />
-          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-[#5fbd44] rounded-full ring-2 ring-white"></span>
-        </button>
-
-        {/* Separador */}
-        <div className="h-8 w-px bg-[#5fbd44]/20 hidden sm:block"></div>
-
         {/* Perfil con dropdown */}
         <div className="relative" ref={dropdownRef}>
           <button

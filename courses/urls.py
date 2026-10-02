@@ -9,5 +9,9 @@ urlpatterns = [
     path('calificaciones/', views.guardar_calificacion, name='guardar_calificacion'),
     path('calificaciones/<str:user_id>/', views.obtener_calificaciones, name='obtener_calificaciones'),
     path('enviar-certificado/', views.enviar_certificado, name='enviar_certificado'),
+    path(
+        'certificado/<str:user_id>/<str:course_id>/<str:token>/',
+        views.descargar_certificado, name='descargar_certificado',
+    ),
 ]
 

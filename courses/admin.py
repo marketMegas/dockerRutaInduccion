@@ -79,7 +79,7 @@ class CertificadoAdmin(admin.ModelAdmin):
     search_fields = ('user_id', 'user_name', 'user_email', 'course_id', 'course_name')
     # El estado del aviso solo se cambia con la accion de reenvio: editarlo a
     # mano dejaria el registro mintiendo sobre si el correo salio o no.
-    readonly_fields = ('archivo', 'intentos', 'fecha_emision', 'notificado', 'notificacion_error')
+    readonly_fields = ('archivo', 'token', 'enlace_descarga', 'intentos', 'fecha_emision', 'notificado', 'notificacion_error')
     actions = ('reenviar_aviso',)
 
     @admin.action(description='Reenviar aviso de certificado')
@@ -101,13 +101,30 @@ class CertificadoAdmin(admin.ModelAdmin):
                 continue
 
             certificado.intentos += 1
+            adjunto = _adjunto_certificado(certificado)
+            motivo = 'reenvío manual desde el panel'
+
+            # Al estudiante se le manda con con_internos=False porque el aviso
+            # de RH va aparte: si no, los internos recibirian dos correos.
+            error_estudiante = ''
+            if certificado.user_email:
+                ok_estudiante, error_estudiante = _enviar(
+                    f"Tu certificado de {certificado.course_name}",
+                    _cuerpo_certificado(request, certificado, motivo, para_estudiante=True),
+                    adjunto,
+                    destinatario=certificado.user_email,
+                    con_internos=False,
+                )
+            else:
+                error_estudiante = ''
+
             notificado, error = _enviar(
                 f"[Certificación completada] {certificado.user_name or certificado.user_id}",
-                _cuerpo_certificado(request, certificado, 'reenvío manual desde el panel'),
-                _adjunto_certificado(certificado),
+                _cuerpo_certificado(request, certificado, motivo),
+                adjunto,
             )
             certificado.notificado = notificado
-            certificado.notificacion_error = error or ''
+            certificado.notificacion_error = error or error_estudiante or ''
             certificado.save()
 
             if notificado:
@@ -120,4 +137,17 @@ class CertificadoAdmin(admin.ModelAdmin):
             f'{enviados} reenviado(s), {fallidos} con error de SMTP, '
             f'{omitidos} ya notificados (omitidos), {sin_archivo} sin archivo en disco.',
             level='warning' if (fallidos or sin_archivo) else 'info',
+        )
+
+    @admin.display(description='Enlace de descarga')
+    def enlace_descarga(self, obj):
+        if not obj or not obj.token:
+            return '—'
+        url = reverse(
+            'descargar_certificado',
+            args=[obj.user_id, obj.course_id, obj.token],
+        )
+        return format_html(
+            '<a href="{}" target="_blank" rel="noopener noreferrer">Descargar PDF</a>',
+            url,
         )

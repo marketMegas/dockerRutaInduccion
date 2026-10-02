@@ -1,3 +1,5 @@
+import heroImage from '../../../nuevoLOGOMegas.png';
+
 // La Ruta de Inducción quedó reducida a su título. Antes esta página traía
 // ~1000 líneas de contenido fijo en el código (objetivo, descripción del
 // autoglp, stakeholders, logos de partners, estrategias, tabla comparativa de
@@ -23,6 +25,14 @@ export const DashboardPage = () => {
               Inducción
             </span>
           </h1>
+          <p className="mt-5 max-w-xl text-center text-lg font-medium leading-relaxed text-gray-500">
+            Bienvenidos a nuestra Ruta de Inducción. Acá encontrarás recursos para conocernos mejor.
+          </p>
+          <img
+            src={heroImage}
+            alt="Bienvenidos a la Ruta de Inducción"
+            className="mt-6 w-full max-w-3xl rounded-2xl object-cover"
+          />
         </div>
 
       </div>

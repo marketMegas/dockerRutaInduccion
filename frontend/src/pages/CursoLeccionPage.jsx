@@ -1,10 +1,10 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, CheckCircle2, Play, Lock } from 'lucide-react';
 import { useCourseStore } from '../store/useCourseStore';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { useAuth } from '../context/AuthContext';
-import { QuizAutoGLP } from '../components/QuizAutoGLP';
+import { EvaluacionCurso } from '../components/EvaluacionCurso';
 import { RecursosMultimedia } from '../components/RecursosMultimedia';
 import { CourseProgress } from '../components/CourseProgress';
 import { Course1Leccion2Content } from '../components/course/lessons/Course1Leccion2Content';
@@ -16,7 +16,6 @@ import { Course3Leccion2Content } from '../components/course/lessons/Course3Lecc
 import { Course3Leccion3Content } from '../components/course/lessons/Course3Leccion3Content';
 import { Course3Leccion4Content } from '../components/course/lessons/Course3Leccion4Content';
 import { Course3Leccion5Content } from '../components/course/lessons/Course3Leccion5Content';
-import CertificadoGenerator from '../assets/CertificadoGenerator';
 
 export const CursoLeccionPage = () => {
   const { id, leccionId } = useParams();
@@ -25,9 +24,12 @@ export const CursoLeccionPage = () => {
   const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
   const [quizPassed, setQuizPassed] = useState(false);
-  const certificadoRef = useRef(null);
 
   const parsedLeccionId = parseInt(leccionId);
+  // La evaluación se muestra en la última lección del curso, sin excepciones
+  // por id: el caso especial del curso 3 apuntando al 4 quedó desactualizado
+  // cada vez que el catálogo cambió.
+  const isEvalLesson = course && parsedLeccionId === course.totalLessons;
 
   useEffect(() => {
     if (id) {
@@ -56,19 +58,14 @@ export const CursoLeccionPage = () => {
     setQuizPassed(passed);
     if (passed && id) {
       markLessonComplete(id, parsedLeccionId, currentUser?.uid);
-      if (course.id === 3) {
-        updateCourseProgress(id, { 
-          completedLessons: 4, 
-          totalLessons: course.totalLessons, 
-          progress: 80 
-        });
-      } else {
-        updateCourseProgress(id, { 
-          completedLessons: course.totalLessons - 1, 
-          totalLessons: course.totalLessons, 
-          progress: 99 
-        });
-      }
+      // Nunca 100: la última lección del curso es la evaluación, y marcarla
+      // como completada antes de evaluarse hacía que el botón de "descargar
+      // certificado" apareciera sin que nadie hubiera aprobado nada.
+      updateCourseProgress(id, {
+        completedLessons: course.totalLessons - 1,
+        totalLessons: course.totalLessons,
+        progress: 99,
+      });
     }
   };
 
@@ -81,76 +78,20 @@ export const CursoLeccionPage = () => {
         }
       }
 
-
       // Actualizar el estado local al 100%
-      await updateCourseProgress(id, { 
-        completedLessons: course.totalLessons, 
-        totalLessons: course.totalLessons, 
-        progress: 100 
+      await updateCourseProgress(id, {
+        completedLessons: course.totalLessons,
+        totalLessons: course.totalLessons,
+        progress: 100
       });
 
-      try {
-        if (certificadoRef.current) {
-          const pdfBlob = await certificadoRef.current.generarPDF();
-          const formData = new FormData();
-          const nombreUser = currentUser?.displayName || 'Usuario';
-          formData.append('certificado', pdfBlob, `Certificado_${nombreUser}.pdf`);
-          formData.append('nombreUsuario', nombreUser);
-          formData.append('emailUsuario', currentUser?.email || '');
-          formData.append('curso', course.title || `Curso ${course.id}`);
-          // userId y courseId identifican la fila del certificado en Django.
-          // Sin ellos el backend cae al correo como clave, y dos emisiones del
-          // mismo usuario sin correo no se podrian distinguir.
-          formData.append('userId', currentUser?.uid || '');
-          formData.append('courseId', String(course.id ?? ''));
-
-          // Enviar al backend de Django
-          const response = await fetch('/api/cursos/enviar-certificado/', {
-            method: 'POST',
-            body: formData,
-          });
-          
-          const result = await response.json();
-          
-          if (response.ok) {
-            if (result.notificado) {
-              alert("¡Curso finalizado! Tu certificado quedó generado y el equipo interno fue notificado. Ya podés descargarlo.");
-            } else {
-              // El certificado se guardó igual: el aviso es lo único que falló
-              // y se reintenta desde el panel. Decir "error" acá sería mentir,
-              // el usuario sí tiene su certificado.
-              console.warn("Certificado generado sin notificar internamente:", result.notificacion_error);
-              alert("¡Curso finalizado! Tu certificado quedó generado y ya podés descargarlo, pero no se pudo avisar al equipo interno. No te preocupes, lo revisan desde el panel.");
-            }
-          } else {
-            alert("El curso finalizó, pero hubo un error al registrar el certificado: " + (result.error || "Error desconocido"));
-            console.error("Detalle del error del backend:", result);
-          }
-        }
-      } catch (err) {
-        console.error("Error al generar o enviar el certificado:", err);
-        alert("Ocurrió un problema al intentar generar o enviar el certificado: " + err.message);
-      }
+      // El certificado NO se genera acá. Antes esta función armaba el PDF y lo
+      // subía al backend, así que completar lecciones bastaba para obtener un
+      // certificado sin haber aprobado la evaluación. Ahora lo emite la
+      // evaluación, que es la que verifica la nota contra el banco.
     }
   };
 
-  const handleDescargar = () => {
-    try {
-      if (certificadoRef.current) {
-        console.log("CertificadoRef actual:", certificadoRef.current);
-        if (typeof certificadoRef.current.descargarPDF === 'function') {
-          certificadoRef.current.descargarPDF();
-        } else {
-          alert("Error: la función de descarga no está disponible. Por favor recarga la página completa (F5).");
-        }
-      } else {
-        alert("Error crítico: el generador de PDF no ha cargado en la página (ref es nulo).");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Error al intentar iniciar la descarga: " + err.message);
-    }
-  };
 
   if (isLoading || !course) return <LoadingSpinner text="Cargando tu lección..." />;
 
@@ -206,28 +147,40 @@ export const CursoLeccionPage = () => {
     );
   };
 
+  // La evaluación vive en la última lección del curso. Course 3 la tenía
+  // hardcodeada en el 4 en tres lugares distintos (pestaña, botón y gate de
+  // navegación); si el catálogo cambiaba, esas rutas se quedaban atrás.
+  const irAEvaluacion = () => {
+    setActiveTab(2);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // "Ir a evaluación" solo tiene sentido si el estudiante todavía no está ahí y
+  // todavía no la rindió. Si ya está en la pestaña le llevaba a donde ya está,
+  // y después de aprobar lo mandaba a repetir algo que ya había terminado.
+  const mostrarIrAEvaluacion = activeTab !== 2 && !quizPassed;
+
   // Lógica para determinar qué botón de navegación inferior mostrar
   const renderBottomNavButton = () => {
-    const isCourse3 = course.id === 3;
-    const isQuizLesson = isCourse3 ? parsedLeccionId === 4 : parsedLeccionId === course.totalLessons;
-    const isLastLesson = parsedLeccionId === course.totalLessons;
-    const isPassed = quizPassed || (course.completedLessons >= parsedLeccionId);
-    
+    // El progreso al 100% no es una nota: lo único que puede hacer es llevar a
+    // la evaluación. El botón decía "Descargar Certificado" y generaba un PDF
+    // en el navegador sin que nadie hubiera aprobado.
     if (course.progress === 100) {
+      if (!mostrarIrAEvaluacion) return null;
       return (
-        <button 
-          onClick={handleDescargar}
+        <button
+          onClick={irAEvaluacion}
           className="flex items-center gap-2 bg-[#f6811e] text-white px-8 py-4 rounded-2xl font-bold hover:bg-[#5fbd44] transition-all shadow-lg shadow-[#f6811e]/20 group cursor-pointer"
         >
-          Descargar Certificado
+          Ir a Evaluación
           <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
         </button>
       );
     }
 
-    if (isCourse3 && isLastLesson) {
+    if (isEvalLesson && quizPassed) {
       return (
-        <button 
+        <button
           onClick={handleCompleteCourse}
           className="flex items-center gap-2 bg-[#10b981] text-white px-8 py-4 rounded-2xl font-bold hover:bg-[#059669] transition-all shadow-lg shadow-[#10b981]/20 group cursor-pointer"
         >
@@ -237,53 +190,9 @@ export const CursoLeccionPage = () => {
       );
     }
 
-    if (isQuizLesson) {
-      if (isPassed) {
-        if (!isLastLesson) {
-          return (
-            <button 
-              onClick={async () => {
-                await markLessonComplete(id, currentLesson.id, currentUser?.uid);
-                navigate(`/curso/${id}/leccion/${parsedLeccionId + 1}`);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className="flex items-center gap-2 bg-[#f6811e] text-white px-8 py-4 rounded-2xl font-bold hover:bg-[#5fbd44] transition-all shadow-lg shadow-[#f6811e]/20 group cursor-pointer"
-            >
-              Siguiente Lección
-              <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </button>
-          );
-        }
-        
-        // Si pasamos el quiz y ESTAMOS en la última lección (cursos 1 y 2), mostramos Finalizar Curso
-        return (
-          <button 
-            onClick={handleCompleteCourse}
-            className="flex items-center gap-2 bg-[#10b981] text-white px-8 py-4 rounded-2xl font-bold hover:bg-[#059669] transition-all shadow-lg shadow-[#10b981]/20 group cursor-pointer"
-          >
-            Finalizar Curso
-            <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </button>
-        );
-      } else {
-        return (
-          <button 
-            onClick={() => {
-              setActiveTab(2);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            className="flex items-center gap-2 bg-[#10b981] text-white px-8 py-4 rounded-2xl font-bold hover:bg-[#059669] transition-all shadow-lg shadow-[#10b981]/20 group cursor-pointer"
-          >
-            Ir a Evaluación
-            <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </button>
-        );
-      }
-    }
-
     if (parsedLeccionId < course.totalLessons) {
       return (
-        <button 
+        <button
           onClick={async () => {
             // Guardar la lección actual como completada antes de avanzar
             await markLessonComplete(id, currentLesson.id, currentUser?.uid);
@@ -324,24 +233,26 @@ export const CursoLeccionPage = () => {
             {currentLesson.id}. {currentLesson.title.replace(/^\d+\.\s*/, '')}
           </h1>
           {course.progress === 100 ? (
-            <button 
-              onClick={handleDescargar}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-[#f6811e] text-[#f6811e] rounded-lg font-bold transition-colors hover:bg-green-50 whitespace-nowrap w-full sm:w-auto text-sm cursor-pointer"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              Descargar Certificado
-            </button>
+            // El progreso al 100% ya no significa "certificate listo": el
+            // certificado depende de la nota. Este botón lleva a la evaluación,
+            // que es donde el estudiante lo descarga o lo pide por correo.
+            // Se oculta si ya estás en la pestaña de evaluación o si ya la
+            // terminaste, por el mismo motivo que el de abajo.
+            mostrarIrAEvaluacion ? (
+              <button
+                onClick={irAEvaluacion}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-[#f6811e] text-[#f6811e] rounded-lg font-bold transition-colors hover:bg-green-50 whitespace-nowrap w-full sm:w-auto text-sm cursor-pointer"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                Ir a mi evaluación
+              </button>
+            ) : null
           ) : (
-            <button 
+            <button
               onClick={parsedLeccionId === course.totalLessons ? handleCompleteCourse : async () => {
                 await markLessonComplete(id, currentLesson.id, currentUser?.uid);
-                if (course.id === 3 && parsedLeccionId === 4 && !quizPassed) {
-                  setActiveTab(2);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                } else {
-                  navigate(`/curso/${id}/leccion/${parsedLeccionId + 1}`);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
+                navigate(`/curso/${id}/leccion/${parsedLeccionId + 1}`);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
               className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-[#f6811e] text-[#f6811e] rounded-lg font-medium transition-colors hover:bg-green-50 whitespace-nowrap w-full sm:w-auto text-sm cursor-pointer"
             >
@@ -378,8 +289,7 @@ export const CursoLeccionPage = () => {
           <ul className="flex gap-8 overflow-x-auto hide-scrollbar">
             {tabs.map((tab, i) => {
               const isEvalTab = tab === 'Evaluación';
-              const isLastLesson = course.id === 3 ? parsedLeccionId === 4 : parsedLeccionId === course.totalLessons;
-              if (isEvalTab && !isLastLesson) return null;
+              if (isEvalTab && !isEvalLesson) return null;
               return (
                 <li key={i}>
                   <button
@@ -409,7 +319,17 @@ export const CursoLeccionPage = () => {
 
         {activeTab === 2 && (
           <div className="py-6">
-            <QuizAutoGLP onPass={handleQuizPass} courseId={course.id} />
+            <EvaluacionCurso
+              onPass={handleQuizPass}
+              courseId={course.id}
+              courseName={course.title || `Curso ${course.id}`}
+              // El quiz no sabe a donde seguir: eso lo decide la pagina, que
+              // es la unica que sabe si esta es la ultima leccion del curso.
+              // Antes estava hardcodeado por curso en el JSX del quiz, con
+              // rutas que ya no existen (/curso/3/leccion/5 daba 404).
+              nextPath={parsedLeccionId === course.totalLessons ? '/cursos' : `/curso/${id}/leccion/${parsedLeccionId + 1}`}
+              buttonText={parsedLeccionId === course.totalLessons ? 'SIGUIENTE CURSO' : 'SIGUIENTE LECCIÓN'}
+            />
           </div>
         )}
 
@@ -481,14 +401,6 @@ export const CursoLeccionPage = () => {
       <div className="mt-4 flex justify-end w-full lg:col-span-3">
         {renderBottomNavButton()}
       </div>
-
-      {/* Generador de Certificados (Oculto) */}
-      <CertificadoGenerator 
-        ref={certificadoRef}
-        nombreUsuario={currentUser?.displayName || 'Usuario'}
-        curso={course?.title || `Curso ${course?.id || ''}`}
-        fecha={new Date().toLocaleDateString()}
-      />
     </div >
   );
 };

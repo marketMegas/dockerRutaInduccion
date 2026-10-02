@@ -53,13 +53,29 @@ def registrar_calificacion(*, curso, evaluacion, respuestas, user_id,
     """Corrige, guarda la Calificacion y devuelve el veredicto.
 
     No mira nada de lo que el cliente diga sobre su nota: entra `respuestas` y
-    sale score/percentage/passed de la comparacion contra la base. Lo unico que
-    se toma del cliente es quien es, porque la identidad la valida Firebase del
-    lado del navegador y aca no llega.
+    sale score/percentage/passed de la comparacion contra la base. Tampoco mira
+    quien es: `user_id`, `user_name` y `user_email` llegan ya resueltos desde
+    `request.firebase_uid` / `request.nombre_verificado`, que fijo
+    `@requiere_estudiante` a partir del token verificado. Por eso esta funcion
+    no busca al usuario por ningun lado, ni aunque `user_id` fuera una cadena
+    inventada.
 
     `course_name` va con el titulo del CURSO y no con el de la evaluacion: ese
     ultimo es decorativo ("Evaluación final") y el aviso de aprobacion lo lee
     gente de RH, que necesita saber que curso se completo.
+
+    LA APROBACION ES IRREVERSIBLE y la fila guarda el MEJOR intento, no el
+    ultimo. Antes se pisaba `passed` con el veredicto de cada intento, asi que
+   aprobar y despues reprobar dejaba al estudiante sin aprobacion: justo lo
+    contrario de lo que significa "aprobo", y con el certificado como
+    consecuencia (perdia el derecho a descargarlo). Rindiendo de nuevo solo
+    puede mejorar el numero.
+
+    La respuesta reporta los valores de la fila guardada, no los de este
+    intento, y por eso el veredicto que ve el estudiante y la puerta del
+    certificado nunca se contradicen. Que este intento fuera peor se puede
+    leer en `detalle` y en `intento_mejorado`, para que la pantalla lo diga
+    en vez de fingir que el 100% de antes es el de ahora.
 
     Devuelve un dict con la fila, el detalle pregunta por pregunta y si la
     nota es nueva. El aviso de aprobacion NO se manda desde aca: lo manda la
@@ -76,13 +92,26 @@ def registrar_calificacion(*, curso, evaluacion, respuestas, user_id,
     ).first()
     ya_aprobo = bool(previa and previa.passed)
 
+    # Solo se pisa con un intento estrictamente mejor. Empate no cuenta: rindiendo
+    # lo mismo dos veces no tiene por que reescribir la fila ni tocar la fecha.
+    intento_mejorado = previa is None or percentage > previa.percentage
+
+    if intento_mejorado:
+        fila_score, fila_total = score, total
+        fila_percentage, fila_passed = percentage, passed
+    else:
+        fila_score = previa.score
+        fila_total = previa.total_questions
+        fila_percentage = previa.percentage
+        fila_passed = previa.passed
+
     defaults = {
         'course_name': curso.title,
         'evaluacion': evaluacion,
-        'score': score,
-        'total_questions': total,
-        'percentage': percentage,
-        'passed': passed,
+        'score': fila_score,
+        'total_questions': fila_total,
+        'percentage': fila_percentage,
+        'passed': fila_passed,
     }
     # La identidad solo se pisa si viene informada: un cliente que no manda
     # user_name ni user_email no debe borrar la que ya estaba guardada.
@@ -91,24 +120,48 @@ def registrar_calificacion(*, curso, evaluacion, respuestas, user_id,
     if user_email:
         defaults['user_email'] = user_email
 
-    calificacion, created = Calificacion.objects.update_or_create(
-        user_id=user_id,
-        course_id=str(curso.id),
-        defaults=defaults,
-    )
+    if previa is not None and not intento_mejorado:
+        # update_or_create() hace save() aunque los valores sean identicos, y
+        # fecha_creacion es auto_now: reintentar con la misma nota moveria la
+        # fecha de una fila que en realidad no cambio (y al usuario le
+        # apareceria como si acabara de calificar). Solo se escribe si hay
+        # algo distinto de verdad, por ejemplo el nombre del curso si RH lo
+        # renombro, o el nombre del alumno si esta vez si vino informado.
+        cambios = {
+            campo: valor for campo, valor in defaults.items()
+            if getattr(previa, campo) != valor
+        }
+        if cambios:
+            for campo, valor in cambios.items():
+                setattr(previa, campo, valor)
+            previa.save()
+        calificacion, created = previa, False
+    else:
+        calificacion, created = Calificacion.objects.update_or_create(
+            user_id=user_id,
+            course_id=str(curso.id),
+            defaults=defaults,
+        )
 
     return {
         'calificacion': calificacion,
-        'score': score,
-        'total': total,
-        'percentage': percentage,
-        'passed': passed,
+        'score': fila_score,
+        'total': fila_total,
+        'percentage': fila_percentage,
+        'passed': fila_passed,
         'puntaje_aprobacion': evaluacion.puntaje_aprobacion,
         # Solo se puede exponer DESPUES de guardar: ya no le sirve al cliente
         # para volver a mandar. Lo consume la vista para armar la respuesta.
         'detalle': detalle,
-        'notificar': passed and not ya_aprobo,
+        'notificar': fila_passed and not ya_aprobo,
         'created': created,
+        'intento_mejorado': intento_mejorado,
+        # Para que la pantalla pueda decir "ya lo habias aprobado" en vez de
+        # mostrar un 100% viejo como si fuera el resultado de este intento.
+        'ya_aprobado': ya_aprobo,
+        # Lo que este intento dio en realidad, aunque no se haya guardado.
+        'intento_percentage': percentage,
+        'intento_score': score,
     }
 
 

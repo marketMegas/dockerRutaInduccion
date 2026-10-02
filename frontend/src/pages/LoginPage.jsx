@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import logoMegas from '../../../nuevoLOGOMegas.png';
 import { Eye, EyeOff, LogIn, AlertCircle, Loader2, CheckCircle } from 'lucide-react';
 
 export const LoginPage = () => {
@@ -108,11 +109,19 @@ export const LoginPage = () => {
         {/* Logo */}
         <div className="relative z-10 flex flex-col items-center text-center">
           <div className="mb-8 p-4 bg-white/10 rounded-2xl backdrop-blur-sm border border-white/20">
-            <img
-              src="https://i.imgur.com/0lJYiHW.png"
-              alt="G-MAX Logo"
-              className="h-16 w-auto object-contain filter brightness-0 invert"
-            />
+            <div className="relative inline-block">
+              <img
+                src={logoMegas}
+                alt="G-MAX Logo"
+                className="relative z-10 h-48 w-auto object-contain filter brightness-0 invert"
+              />
+              <img
+                src={logoMegas}
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 h-48 w-auto object-contain blur-[3px] opacity-45 filter brightness-0 invert"
+              />
+            </div>
           </div>
 
           <h1 className="text-4xl font-extrabold mb-4 leading-tight tracking-tight">
@@ -123,9 +132,8 @@ export const LoginPage = () => {
           </p>
 
           {/* Stats */}
-          <div className="mt-12 grid grid-cols-3 gap-6 w-full max-w-xs">
+          <div className="mt-12 grid grid-cols-2 gap-6 w-full max-w-xs">
             {[
-              { value: '3+', label: 'Cursos' },
               { value: '100%', label: 'Online' },
               { value: '24/7', label: 'Acceso' },
             ].map((stat, i) => (
@@ -139,15 +147,24 @@ export const LoginPage = () => {
       </div>
 
       {/* Panel derecho - Formulario */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 bg-[#f8fafc]">
-        <div className="w-full max-w-md">
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 bg-[#f8fafc] relative overflow-hidden">
+        {/* Círculos verdes difuminados de fondo */}
+        <div
+          className="absolute -top-16 -right-12 w-80 h-80 rounded-full opacity-35 blur-[28px]"
+          style={{ background: 'radial-gradient(circle, #5fdb44 0%, transparent 70%)' }}
+        />
+        <div
+          className="absolute -bottom-16 -left-12 w-72 h-72 rounded-full opacity-35 blur-[28px]"
+          style={{ background: 'radial-gradient(circle, #5fdb44 0%, transparent 70%)' }}
+        />
+        <div className="relative z-10 w-full max-w-md">
 
           {/* Logo móvil */}
           <div className="flex lg:hidden justify-center mb-8">
             <img
-              src="https://www.g-max.com.co/gasmax2.png"
+              src={logoMegas}
               alt="G-MAX Logo"
-              className="h-12 w-auto object-contain"
+              className="h-27 w-auto object-contain"
             />
           </div>
 
@@ -331,7 +348,7 @@ export const LoginPage = () => {
 
           {/* Footer */}
           <p className="mt-4 text-center text-xs text-gray-400">
-            © {new Date().getFullYear()} Universidad G-MAX. Todos los derechos reservados.
+            © {new Date().getFullYear()} Megas. Todos los derechos reservados.
           </p>
         </div>
       </div>

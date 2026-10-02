@@ -1,115 +1,93 @@
+"""Los dos endpoints que deciden si alguien puede entrar.
+
+No hay mas registro ni login en Django. Todo eso vive en Firebase, del lado del
+navegador: el backend no recibe contrasenas ni crea cuentas. Lo unico que hace
+es negativo, y son justo las dos consultas que el frontend necesita:
+
+- `correo_autorizado` se consulta ANTES de crear la cuenta en Firebase. Sin
+  esto, el alta seria libre y cualquiera podria abrirse una cuenta con el correo
+  de otro alumno y, si el correo es el criterio de la lista blanca, entrar como
+  el. Con esto, el correo tiene que estar dado de alta en /admin antes de que
+  exista la cuenta: el enlace correo -> persona lo hace Django.
+
+- `verificar_acceso` se consulta ya con la sesion abierta. Es la respuesta
+  directa a "este correo esta en la lista", y es la que `ProtectedRoute` mira
+  para decidir entre mostrar el curso y mostrar la pantalla de acceso
+  restringido.
+
+Lo que se borro de aca (login_normal, registro_normal, registro_google y su
+plantilla) era una segunda puerta de entrada que ademas se habia vuelto
+autoinvitacion: `registro_normal` creaba un User de Django con lo que le
+mandaran, y ahora que la lista blanca ES la lista de User de Django, eso habria
+sido con solo un POST auto-darse el acceso.
+"""
+
 import json
+
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.shortcuts import render
-from django.contrib.auth.models import User
-from django.contrib.auth import login, authenticate
-from google.oauth2 import id_token
-from google.auth.transport import requests
+from django.views.decorators.http import require_http_methods
 
-def registro_page(request):
-    return render(request, 'usuarios/registro.html')
+from .permisos import (
+    MENSAJE_SIN_ALTA, claims_de_la_peticion, usuario_autorizado,
+)
+
 
 @csrf_exempt
-def login_normal(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            username = data.get('username')
-            password = data.get('password')
+@require_http_methods(["POST"])
+def correo_autorizado(request):
+    """POST {email} -> {autorizado: bool}
 
-            if not username or not password:
-                return JsonResponse({'error': 'Por favor, ingrese usuario y contraseña'}, status=400)
+    Deliberadamente no devuelve ni el nombre ni el User: la pantalla de
+    registro solo necesita un si o un no. Lo de que esta o no un correo en la
+    lista lo revela el alta de cualquier registro, asi que no hay nada que
+    ocultar aca; lo que si importa es no devolver datos de la cuenta.
+    """
+    try:
+        data = json.loads(request.body or b'{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'JSON invalido'}, status=400)
 
-            user = authenticate(request, username=username, password=password)
-            
-            if user is not None:
-                login(request, user)
-                return JsonResponse({'status': 'success', 'message': '¡Inicio de sesión exitoso!'})
-            else:
-                return JsonResponse({'error': 'Credenciales inválidas'}, status=401)
-                
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-            
-    return JsonResponse({'error': 'Método no permitido'}, status=405)
+    email = str(data.get('email') or '').strip()
+    if not email or '@' not in email:
+        return JsonResponse({'error': 'Falta el correo.'}, status=400)
+
+    return JsonResponse({'autorizado': usuario_autorizado(email) is not None})
+
 
 @csrf_exempt
-def registro_normal(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            username = data.get('username')
-            email = data.get('email')
-            password = data.get('password')
+@require_http_methods(["POST"])
+def verificar_acceso(request):
+    """POST con `Authorization: Bearer <ID token>` -> si ese correo esta dado
+    de alta en Django.
 
-            if not username or not email or not password:
-                return JsonResponse({'error': 'Por favor complete todos los campos'}, status=400)
+    No lleva `@requiere_estudiante`: esta vista ES la que responde si el alumno
+    tiene alta, asi que un 403 aca es una respuesta valida y no un error. Por
+    eso usa `claims_de_la_peticion` directo, que es el mismo paso que hace el
+    decorador pero sin la segunda mitad.
 
-            if User.objects.filter(username=username).exists():
-                return JsonResponse({'error': 'El nombre de usuario ya está en uso'}, status=400)
+    Un 401 con `codigo: token_invalido` le dice al frontend que reintente con
+    un token fresco: los ID tokens duran una hora y el SDK de Firebase los
+    refresca solo, asi que un token vencido no significa sesion perdida.
+    """
+    claims, error = claims_de_la_peticion(request)
+    if error is not None:
+        status, cuerpo = error
+        return JsonResponse(cuerpo, status=status)
 
-            # Crear el usuario en la base de datos
-            user = User.objects.create_user(username=username, email=email, password=password)
-            
-            # Iniciar sesión automáticamente después de registrar
-            login(request, user)
-            
-            return JsonResponse({'status': 'success', 'message': '¡Usuario registrado e inicio de sesión exitoso!'})
-            
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-            
-    return JsonResponse({'error': 'Método no permitido'}, status=405)
+    email = str(claims.get('email') or '').strip()
+    user = usuario_autorizado(email)
 
-# Reemplaza esto con el mismo Client ID que usaste en el Frontend
-GOOGLE_CLIENT_ID = "549227011140-784g5vpn47cfk2r7rnc96cen8247qgek.apps.googleusercontent.com"
+    if user is None:
+        return JsonResponse({
+            'autorizado': False,
+            'codigo': 'sin_alta',
+            'error': MENSAJE_SIN_ALTA,
+        }, status=403)
 
-# Nota: Usamos @csrf_exempt para facilitar la prueba inicial. 
-# En producción, asegúrate de enviar el token CSRF desde tu frontend (fetch) para mayor seguridad.
-@csrf_exempt 
-def registro_google(request):
-    if request.method == 'POST':
-        try:
-            # 1. Recibir el token enviado desde el frontend
-            data = json.loads(request.body)
-            token = data.get('token')
-
-            if not token:
-                return JsonResponse({'error': 'No se proporcionó ningún token'}, status=400)
-
-            # 2. Verificar el token directamente con los servidores de Google
-            # Si el token es inválido o expiró, esto lanzará un ValueError
-            idinfo = id_token.verify_oauth2_token(token, requests.Request(), "549227011140-784g5vpn47cfk2r7rnc96cen8247qgek.apps.googleusercontent.com")
-
-            # 3. Extraer los datos seguros del usuario
-            email = idinfo['email']
-            nombre = idinfo.get('given_name', '')
-            apellido = idinfo.get('family_name', '')
-
-            # 4. Lógica de Base de Datos: Buscar o Crear el usuario en Django
-            # Usamos el email como username, ya que Google garantiza que sea único y verificado
-            user, created = User.objects.get_or_create(username=email, defaults={
-                'email': email,
-                'first_name': nombre,
-                'last_name': apellido
-            })
-
-            # 5. Iniciar la sesión del usuario en Django
-            login(request, user)
-
-            if created:
-                mensaje = "¡Usuario registrado e inicio de sesión exitoso!"
-            else:
-                mensaje = "¡Bienvenido de vuelta! Inicio de sesión exitoso."
-
-            return JsonResponse({'status': 'success', 'message': mensaje})
-
-        except ValueError:
-            # El token de Google es inválido
-            return JsonResponse({'error': 'Token de Google inválido o expirado'}, status=401)
-        except Exception as e:
-            # Cualquier otro error del servidor
-            return JsonResponse({'error': str(e)}, status=500)
-            
-    return JsonResponse({'error': 'Método no permitido'}, status=405)
+    return JsonResponse({
+        'autorizado': True,
+        'uid': claims['sub'],
+        'email': email,
+        'nombre': user.get_full_name() or user.username,
+    })

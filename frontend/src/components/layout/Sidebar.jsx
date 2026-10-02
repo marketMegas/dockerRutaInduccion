@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Route, BookOpenCheck,
-  MessagesSquare, FolderKanban, ClipboardCheck, Headphones, X, LogOut, ArrowRight
+  MessagesSquare, FolderKanban, ClipboardCheck, X, LogOut, ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCourseStore } from '../../store/useCourseStore';
@@ -172,12 +172,8 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
           </div>
         </nav>
 
-        {/* Footer / Centro de ayuda + Logout */}
-        <div className="p-3 border-t border-[#5fbd44]/15 space-y-1 bg-white/40">
-          <button className="w-full flex items-center gap-3 px-3 py-2.5 text-gray-500 hover:text-gray-900 hover:bg-white rounded-xl transition-colors text-sm font-medium">
-            <Headphones className="w-5 h-5 text-[#5fbd44]" />
-            Centro de ayuda
-          </button>
+        {/* Footer / Logout */}
+        <div className="p-3 border-t border-[#5fbd44]/15 bg-white/40">
           <button
             id="sidebar-logout-btn"
             onClick={handleLogout}

@@ -29,9 +29,21 @@ function Stop-Node {
     Get-CimInstance Win32_Process -Filter "Name='node.exe'" |
         Where-Object { $_.CommandLine -like "*$root\frontend*" } |
         ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
-    Get-CimInstance Win32_Process -Filter "Name='python.exe'" |
-        Where-Object { $_.CommandLine -like '*manage.py*runserver*' } |
-        ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+
+    # Repetir hasta que no quede nada, en vez de una sola pasada.
+    # Con autoreload hay un reloader padre que relanza al hijo si este muere
+    # (restart_with_reloader respawna en loop). Matando en una sola pasada y en
+    # orden arbitrario, era cuestión de tiempo que un reloader sobreviviera a
+    # su hijo: cada corrida de dev.ps1 dejaba un nivel más de runserver
+    # encadenado, y el que atendía el puerto 8000 era el más viejo, sirviendo
+    # código viejo. Por eso el bucle.
+    for ($i = 0; $i -lt 10; $i++) {
+        $servidores = Get-CimInstance Win32_Process -Filter "Name='python.exe'" |
+            Where-Object { $_.CommandLine -like '*manage.py*runserver*' }
+        if (-not $servidores) { break }
+        $servidores | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+        Start-Sleep -Milliseconds 500
+    }
 }
 
 if ($Detener) {
@@ -75,8 +87,15 @@ if (-not $SoloFrontend) {
     $errLog = Join-Path $logDir 'backend.err.log'
 
     Stop-Node
+    # Con autoreload (sin --noreload): el watcher de Django relanza el backend
+    # solo cuando cambia un .py. Antes fijabamos el proceso en el codigo del
+    # arranque y hacia falta reiniciar a mano, que es la forma facil de
+    # perder tiempo depurando cambios que ya estaban aplicados.
+    # Stop-Node sigue limpiando los dos procesos: el padre y el hijo que
+    # lanza el watcher relanzan con `python -m django manage.py runserver ...`,
+    # que tambien matchea *manage.py*runserver*.
     $proc = Start-Process -FilePath $py `
-        -ArgumentList 'manage.py', 'runserver', '127.0.0.1:8000', '--noreload' `
+        -ArgumentList 'manage.py', 'runserver', '127.0.0.1:8000' `
         -WorkingDirectory $root `
         -RedirectStandardOutput $outLog `
         -RedirectStandardError $errLog `

@@ -90,6 +90,19 @@ CORS_ALLOWED_ORIGINS = [
     if origin.strip()
 ]
 
+# ── Firebase ────────────────────────────────────
+# El projectId contra el que se audita el ID token que manda el navegador. Es
+# el `projectId` de frontend/src/config/firebase.js: si los dos no coinciden,
+# verify_oauth2_token rechaza todos los tokens y nadie puede entrar.
+#
+# Sin valor por defecto a proposito, igual que EMAIL_HOST_PASSWORD: si la
+# variable no esta, el decorador de usuarios.permisos responde 503 con un
+# mensaje de configuracion, no un 401 que cerraria la sesion de todos los
+# estudiantes. No es un secreto (esta en el bundle del navegador), pero tiene
+# que estar en el entorno porque cambiar de proyecto no se nota hasta que deja
+# de funcionar el login.
+FIREBASE_PROJECT_ID = os.environ.get('FIREBASE_PROJECT_ID', '').strip()
+
 ROOT_URLCONF = 'core_project.urls'
 
 TEMPLATES = [

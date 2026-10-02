@@ -1,3 +1,5 @@
+import secrets
+
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -60,6 +62,9 @@ class Lesson(models.Model):
         return f"{self.module.title} - {self.title}"
 
 class UserProgress(models.Model):
+    # El uid de Firebase de la persona. No es un campo libre: lo escribe
+    # `@requiere_estudiante` con el `sub` del ID token verificado, asi que si
+    # esta fila existe, es de alguien con sesion y con alta en Django.
     user_id = models.CharField(max_length=255, verbose_name="ID de Usuario")
     course_id = models.CharField(max_length=255, verbose_name="ID de Curso")
     lesson_id = models.CharField(max_length=255, verbose_name="ID de Lección")
@@ -117,6 +122,15 @@ class Certificado(models.Model):
     course_name = models.CharField(max_length=255, verbose_name="Nombre del Curso")
     # Ruta relativa dentro de MEDIA_ROOT, la que devuelve default_storage.save.
     archivo = models.CharField(max_length=500, verbose_name="Archivo")
+    # El unico secreto de la fila, y por que el certificado NO se pide solo con
+    # user_id + course_id: esta vista es la unica que no exige sesion (ver
+    # courses.views.descargar_certificado), asi que sin este token cualquiera
+    # que supiera el uid de otro estudiante se bajaba su documento. Con el resto
+    # de la API ya cerrada por sesion, el token sigue haciendo falta igual: el
+    # PDF se manda por correo y su enlace tiene que abrir sin sesion.
+    # Va fuera del admin a proposito: editarlo a mano invalidaría los enlaces
+    # ya repartidos.
+    token = models.CharField(max_length=64, unique=True, editable=False, default='')
     notificado = models.BooleanField(default=False, verbose_name="Notificado")
     notificacion_error = models.TextField(blank=True, default="", verbose_name="Error de notificación")
     intentos = models.PositiveIntegerField(default=0, verbose_name="Intentos de envío")
@@ -134,4 +148,20 @@ class Certificado(models.Model):
     def __str__(self):
         estado = 'notificado' if self.notificado else 'sin notificar'
         return f"{self.user_name or self.user_id} - {self.course_name} ({estado})"
+
+    @staticmethod
+    def nuevo_token():
+        return secrets.token_urlsafe(32)
+
+    def save(self, *args, **kwargs):
+        # El token se genera aqui y no en la vista: `token` es unique y las
+        # filas viejas quedaron en '', asi que si dependiera de que cada
+        # camino de alta se acuerde, el segundo certificado choca contra la
+        # restriccion y el alta muere con un error de integridad que no explica
+        # nada. Ademas, si el token estuviera regenerandose en cada guardado,
+        # un reenvio desde el panel invalidaria los enlaces ya repartidos: solo
+        # se genera cuando esta vacio.
+        if not self.token:
+            self.token = self.nuevo_token()
+        super().save(*args, **kwargs)
 

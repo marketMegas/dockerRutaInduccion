@@ -27,9 +27,8 @@ class OpcionFormSet(forms.BaseInlineFormSet):
     aprobar: le traba el certificado al estudiante para siempre. Eso se
     valida aca.
 
-    Django crea un formset de opciones POR fila del inline de preguntas, asi
-    que `self.instance` es siempre la pregunta de estas opciones y no hace
-    falta agrupar nada.
+    Se usa en PreguntaAdmin, donde el inline es de primer nivel. Acá
+    `self.instance` es siempre la pregunta dueña de estas opciones.
     """
 
     def clean(self):
@@ -68,12 +67,24 @@ class OpcionInline(admin.TabularInline):
 
 
 class PreguntaInline(admin.StackedInline):
+    """Preguntas de la evaluación, editables junto a ella.
+
+    SIN inline de opciones adentro, a propósito. Django ignora el atributo
+    `inlines` de un InlineModelAdmin: no soporta inlines anidados y no avisa.
+    Con el que estaba puesto, la pantalla de evaluación salía sin un solo campo
+    de opción, sin error, y no había forma de marcar la correcta desde ahí.
+
+    Las opciones se cargan entrando a cada pregunta (enlace "modificar" de
+    abajo), donde OpcionInline sí funciona por ser de primer nivel. El
+    `save_related` de EvaluacionAdmin es lo que avisa al final si al activar
+    falta alguna correcta.
+    """
+
     model = Pregunta
     extra = 1
     fields = ('texto', 'contexto', 'es_larga', 'orden')
     ordering = ('orden',)
     show_change_link = True
-    inlines = [OpcionInline]
 
 
 @admin.register(Evaluacion)
@@ -83,7 +94,18 @@ class EvaluacionAdmin(admin.ModelAdmin):
     list_filter = ('activa', 'course')
     search_fields = ('titulo', 'course__title')
     fieldsets = (
-        ('Evaluación', {'fields': ('course', 'titulo', 'activa', 'orden')}),
+        ('Evaluación', {
+            'fields': ('course', 'titulo', 'activa', 'orden'),
+            'description': (
+                'Primero guardá la evaluación con sus preguntas y la dejá '
+                'inactiva. Después entrá a cada pregunta con el enlace '
+                '<b>modificar</b> para cargarle las opciones y marcar cuál es '
+                'la correcta: Django no permite poner opciones en esta misma '
+                'pantalla. Al volver, activá la evaluación; si alguna pregunta '
+                'quedó sin correcta, el guardado se rechaza y te dice '
+                'cuántas son.'
+            ),
+        }),
         ('Aprobación', {
             'fields': ('puntaje_aprobacion',),
             'description': (
@@ -133,15 +155,22 @@ class EvaluacionAdmin(admin.ModelAdmin):
                 'correcta.'
             )
 
-    def changeform_view(self, request, form_url='', extra_context=None):
+    def changeform_view(self, request, object_id=None, form_url='', extra_context=None):
         """Muestra el error de activación como mensaje, no como error 500.
 
         ValidationError desde save_related sale con la transacción ya
         revertida (por eso no queda nada guardado a medias), pero Django no la
         traduce a algo visible en producción: se vería un 500 sin explicación.
+
+        `object_id` va primero y se pasa explícito a super(): si se omite, el
+        admin revienta con TypeError; si se corre un lugar, Django recibe el
+        `form_url` como id, que en un alta es '' (no None), y busca un objeto
+        con id vacío: en vez del formulario vuelve al índice.
         """
         try:
-            return super().changeform_view(request, form_url, extra_context)
+            return super().changeform_view(
+                request, object_id, form_url, extra_context
+            )
         except EvaluacionIncompleta as error:
             messages.error(request, ' '.join(error.messages))
             return HttpResponseRedirect(request.get_full_path())
@@ -152,6 +181,23 @@ class PreguntaAdmin(admin.ModelAdmin):
     list_display = ('__str__', 'evaluacion', 'es_larga', 'orden')
     list_filter = ('es_larga', 'evaluacion__course')
     search_fields = ('texto', 'contexto')
+    fieldsets = (
+        ('Pregunta', {
+            'fields': ('evaluacion', 'texto', 'contexto', 'es_larga', 'orden'),
+            'description': (
+                'Una pregunta siempre pertenece a una evaluación, así que el '
+                'campo <b>Evaluación</b> es obligatorio. <br>'
+                'Si el desplegable está vacío es que todavía no hay ninguna '
+                'evaluación cargada: creá una desde '
+                '<a href="../evaluacion/">Evaluaciones</a> (dejala inactiva y '
+                'escribí las preguntas ahí mismo, es más rápido). Después '
+                'volvé a esta pantalla solo para cargarle las opciones, que es '
+                'lo único que se hace desde acá. <br>'
+                'Orden de carga: evaluación inactiva con sus preguntas → '
+                'opciones y correcta en cada pregunta → activar la evaluación.'
+            ),
+        }),
+    )
     inlines = [OpcionInline]
 
 

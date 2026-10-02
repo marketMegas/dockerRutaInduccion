@@ -11,6 +11,17 @@ const CALIDAD = 0.95;
 const FONDO = '#ffffff';
 
 const renderizarPDF = async (element) => {
+    // Un nodo sin layout (display:none, un padre oculto, o todavia sin montar)
+    // se rasteriza como un lienzo vacio: el PDF salia en blanco y se enviaba
+    // por correo sin que nada fallara. Se corta aca, con un motivo util.
+    const { offsetWidth, offsetHeight } = element;
+    if (!offsetWidth || !offsetHeight) {
+        throw new Error(
+            'El certificado no tiene tamaño visible (esta oculto o todavia no se pintó). ' +
+            'Recargá la página e intentá de nuevo.'
+        );
+    }
+
     const dataUrl = await toJpeg(element, {
         quality: CALIDAD,
         pixelRatio: 2,
@@ -19,17 +30,47 @@ const renderizarPDF = async (element) => {
         backgroundColor: FONDO,
     });
 
+    // html-to-image devuelve "data:," cuando no logra rasterizar nada.
+    if (!dataUrl || dataUrl.length < 100) {
+        throw new Error('No se pudo convertir el certificado a imagen. Probá de nuevo.');
+    }
+
     const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'in',
         format: 'letter'
     });
 
-    pdf.addImage(dataUrl, 'JPEG', 0, 0, 11, 8.5);
+    // El nodo mide 1056x816 px, que es exactamente 11x8.5 pulgadas a 96 dpi:
+    // estirar a medidas fijas sin encajar la relacion de aspecto deformaba el
+    // diseño si el ancho de la pagina no cuadraba.
+    const ancho = 11;
+    const alto = 8.5;
+    const proporcion = offsetWidth / offsetHeight;
+    const proporcionPagina = ancho / alto;
+    let destinoAncho = ancho;
+    let destinoAlto = alto;
+    if (proporcion > proporcionPagina) {
+        destinoAlto = ancho / proporcion;
+    } else {
+        destinoAncho = alto * proporcion;
+    }
+    const offsetX = (ancho - destinoAncho) / 2;
+    const offsetY = (alto - destinoAlto) / 2;
+
+    pdf.addImage(dataUrl, 'JPEG', offsetX, offsetY, destinoAncho, destinoAlto);
     return pdf;
 };
 
-const CertificadoGenerator = forwardRef(({ nombreUsuario, curso = 'Inducción Comercial de Ventas', fecha }, ref) => {
+const CertificadoGenerator = forwardRef(({
+    nombreUsuario,
+    curso = 'Inducción Comercial de Ventas',
+    fecha,
+    score,
+    total,
+    porcentaje,
+    umbral,
+}, ref) => {
     const certificadoRef = useRef();
 
     useImperativeHandle(ref, () => ({
@@ -58,10 +99,14 @@ const CertificadoGenerator = forwardRef(({ nombreUsuario, curso = 'Inducción Co
         }
     }));
 
-    // Render the certificate hidden from the normal flow but still in the DOM so html2canvas can capture it
+    // Fuera de la vista pero NO oculto: `display:none`, `visibility:hidden` o
+    // quitarlo del DOM dejan el nodo sin layout y html-to-image devuelve un
+    // lienzo vacio (PDF en blanco). Por eso va con `position: fixed` y
+    // `left: -12000px`: el navegador lo sigue maquetando y rasterizando, y
+    // el usuario no lo ve ni puede chocar con el.
     return (
 
-        <div style={{ position: 'absolute', top: 0, left: 0, zIndex: -9999, opacity: 0.01, pointerEvents: 'none' }}>
+        <div style={{ position: 'fixed', top: 0, left: '-12000px', width: '1056px', height: '816px', pointerEvents: 'none' }}>
             <div
                 ref={certificadoRef}
                 className="w-[1056px] h-[816px] relative overflow-hidden bg-white flex items-center justify-center p-8"
@@ -130,6 +175,49 @@ const CertificadoGenerator = forwardRef(({ nombreUsuario, curso = 'Inducción Co
                             Por haber completado satisfactoriamente {curso.toLowerCase().includes('inducción') ? 'la' : 'el curso'} <br />
                             <span className="text-[#f6811e]">{curso}</span> en la modalidad online.
                         </p>
+
+                        {/* Puntaje: el certificado ahora respalda una nota real y
+                            solo aparece si el backend lo mandó. Un PDF es
+                            permanente, asi que no se rellena con un numero que
+                            el cliente podria inventar. */}
+                        {porcentaje !== null && porcentaje !== undefined && (
+                            <div className="flex items-center justify-center gap-8 mt-10">
+                                <div className="text-center">
+                                    <p className="text-[14px] uppercase tracking-widest text-[#50634b] font-bold">
+                                        Puntaje
+                                    </p>
+                                    <p className="text-[32px] font-black text-[#5fbd44]">
+                                        {porcentaje}%
+                                    </p>
+                                </div>
+                                {umbral !== null && umbral !== undefined && (
+                                    <div className="w-px h-12 bg-[#f6811e]/40"></div>
+                                )}
+                                {umbral !== null && umbral !== undefined && (
+                                    <div className="text-center">
+                                        <p className="text-[14px] uppercase tracking-widest text-[#50634b] font-bold">
+                                            Mínimo para aprobar
+                                        </p>
+                                        <p className="text-[32px] font-black text-[#f6811e]">
+                                            {umbral}%
+                                        </p>
+                                    </div>
+                                )}
+                                {score !== null && score !== undefined && total ? (
+                                    <>
+                                        <div className="w-px h-12 bg-[#f6811e]/40"></div>
+                                        <div className="text-center">
+                                            <p className="text-[14px] uppercase tracking-widest text-[#50634b] font-bold">
+                                                Respuestas
+                                            </p>
+                                            <p className="text-[32px] font-black text-[#5fbd44]">
+                                                {score}/{total}
+                                            </p>
+                                        </div>
+                                    </>
+                                ) : null}
+                            </div>
+                        )}
 
                         <p className="text-[24px] font-black text-[#f6811e] mt-10">
                             FECHA: <span className="text-[#5fbd44] ml-2">{fecha}</span>

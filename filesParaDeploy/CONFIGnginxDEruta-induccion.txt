@@ -1,0 +1,12 @@
+server {
+    listen 80;
+    server_name localhost;
+
+    # El directorio base general
+    root /usr/share/nginx/html;
+
+    # Si alguien entra a la ruta específica...
+    location /rutainduccion {
+        try_files $uri $uri/ /rutainduccion/index.html;
+    }
+}

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Clock, BarChart, MoreVertical, ChevronDown, Bot, Users, Megaphone, LineChart } from 'lucide-react';
+import { FileText, Clock, BarChart, MoreVertical, Bot, Users, Megaphone, LineChart } from 'lucide-react';
 import { useCourseStore } from '../store/useCourseStore';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { useAuth } from '../context/AuthContext';
@@ -71,13 +71,6 @@ export const CursosPage = () => {
           ))}
         </div>
 
-        <div className="flex items-center gap-2 text-sm text-gray-500 w-full sm:w-auto justify-end">
-          <span>Ordenar por:</span>
-          <button className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-1.5 bg-white hover:bg-gray-50 transition-colors">
-            <span className="font-medium text-gray-700">Más recientes</span>
-            <ChevronDown className="w-4 h-4" />
-          </button>
-        </div>
       </div>
 
       {/* 3. Lista de Tarjetas dinámicas */}

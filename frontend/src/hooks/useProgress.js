@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { apiFetch } from '../services/api';
 
 // Django backend URL for course progress
 const API_BASE = '/api/cursos/progreso';
@@ -25,7 +26,7 @@ export const useProgress = () => {
       setError(null);
 
       try {
-        const res = await fetch(`${API_BASE}/${currentUser.uid}/`);
+        const res = await apiFetch(`${API_BASE}/${currentUser.uid}/`);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
 
@@ -79,7 +80,7 @@ export const useProgress = () => {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/`, {
+      const res = await apiFetch(`${API_BASE}/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import logoMegas from '../../../nuevoLOGOMegas.png';
 import { Eye, EyeOff, UserPlus, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 
 export const RegisterPage = () => {
@@ -50,13 +51,26 @@ export const RegisterPage = () => {
 
     setLoading(true);
     try {
+      // `register` (registrarSiEstaAutorizado, en AuthContext) consulta a Django
+      // si el correo esta dado de alta ANTES de crear la cuenta en Firebase.
       await register(formData.email, formData.password, formData.name.trim());
       navigate('/cursos', { replace: true });
     } catch (err) {
       console.error('Register error:', err);
       switch (err.code) {
+        // El caso nuevo y el que mas se va a ver: hay que estar dado de alta en
+        // /admin > Authentication and Authorization > Users para poder
+        // registrarse. El mensaje lo arma el backend y no se reescribe aca.
+        case 'sin_alta':
+          setError(err.message);
+          break;
         case 'auth/email-already-in-use':
-          setError('Este correo electrónico ya está registrado. Intenta iniciar sesión.');
+          // Este caso casi siempre es de verdad "ya te registraste en un
+          // intento anterior y no llegaste a entrar", no "otro usuario tiene tu
+          // correo". Por eso el mensaje ofrece las dos salidas y no solo
+          // "inicia sesión": quien no recuerda la clave queda sin salida visible
+          // si no se la nominamos.
+          setError('Ya tenés una cuenta con este correo en Firebase. Iniciá sesión con tu contraseña, o usá "¿Olvidaste tu contraseña?" para crear una nueva. Ojo: la contraseña de esta plataforma es la de Firebase, no la que figura en el backend.');
           break;
         case 'auth/invalid-email':
           setError('El formato del correo electrónico no es válido.');
@@ -100,26 +114,25 @@ export const RegisterPage = () => {
         <div className="relative z-10 flex flex-col items-center text-center">
           <div className="mb-8 p-4 bg-white/10 rounded-2xl backdrop-blur-sm border border-white/20">
             <img
-              src="https://www.g-max.com.co/gasmax2.png"
-              alt="G-MAX Logo"
+              src={logoMegas}
+              alt="Logo de Megas"
               className="h-16 w-auto object-contain filter brightness-0 invert"
             />
           </div>
 
           <h1 className="text-4xl font-extrabold mb-4 leading-tight tracking-tight">
-            Únete a la <span className="text-[#f6811e]">Universidad G-MAX</span>
+            Únete a la <span className="text-white">Ruta de Inducción</span>
           </h1>
           <p className="text-white/75 text-lg max-w-sm leading-relaxed">
-            Crea tu cuenta y accede a todos los cursos de formación profesional en AutoGLP.
+            Crea tu cuenta y accede a todos los cursos de formación profesional.
           </p>
 
           {/* Beneficios */}
           <div className="mt-10 space-y-3 w-full max-w-xs text-left">
             {[
-              'Acceso a todos los cursos disponibles',
               'Seguimiento de tu progreso en tiempo real',
               'Certificados de completion',
-              'Soporte del equipo G-MAX',
+              'Soporte del equipo',
             ].map((benefit, i) => (
               <div key={i} className="flex items-center gap-3 text-sm text-white/80">
                 <CheckCircle2 className="w-5 h-5 text-[#f6811e] flex-shrink-0" />
@@ -137,8 +150,8 @@ export const RegisterPage = () => {
           {/* Logo móvil */}
           <div className="flex lg:hidden justify-center mb-8">
             <img
-              src="https://www.g-max.com.co/gasmax2.png"
-              alt="G-MAX Logo"
+              src={logoMegas}
+              alt="Logo de Megas"
               className="h-12 w-auto object-contain"
             />
           </div>
@@ -196,6 +209,16 @@ export const RegisterPage = () => {
                 placeholder="tu@correo.com"
                 className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 text-sm placeholder:text-gray-400 focus:outline-none focus:border-[#f6811e] focus:ring-2 focus:ring-[#f6811e]/20 transition-all"
               />
+              {/* Aviso antes de que el alumno escriba la contraseña: el alta se
+                  valida al final, y descubrirlo después de inventar una
+                  contraseña es la forma más enojosa de enterarse. */}
+              <p className="mt-2 flex items-start gap-1.5 text-xs text-gray-500">
+                <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-[#f6811e]" aria-hidden="true" />
+                <span>
+                  Solo funciona con el correo con el que Recursos Humanos te dio de
+                  alta en la plataforma. Usá ese mismo.
+                </span>
+              </p>
             </div>
 
             {/* Contraseña */}
@@ -338,7 +361,7 @@ export const RegisterPage = () => {
 
           {/* Footer */}
           <p className="mt-6 text-center text-xs text-gray-400">
-            © {new Date().getFullYear()} Universidad G-MAX. Todos los derechos reservados.
+            © {new Date().getFullYear()} Universidad. Todos los derechos reservados.
           </p>
         </div>
       </div>

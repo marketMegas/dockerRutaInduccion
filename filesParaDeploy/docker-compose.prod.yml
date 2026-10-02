@@ -1,0 +1,100 @@
+# ============================================================
+#  docker-compose.prod.yml  —  SOLO para el VPS.
+#
+#  En local sigue usando docker-compose.yml (monta el codigo con
+#  .:/app para editar en caliente). Aca la fuente de verdad es la
+#  IMAGEN construida: no hay bind mount del codigo.
+#
+#  Uso en el VPS:
+#    export APP_VERSION=$(git rev-parse --short HEAD)
+#    docker compose -f docker-compose.prod.yml build
+#    docker compose -f docker-compose.prod.yml up -d
+#
+#  ANTES del primer `up`:
+#    mkdir -p /root/induccion-megas/data /root/induccion-megas/media
+#    # La DB debe EXISTIR como archivo. Si no existe, Docker crea un
+#    # DIRECTORIO llamado db.sqlite3 y el backend no arranca:
+#    touch /root/induccion-megas/data/db.sqlite3
+#    # (o copia ahi tu db.sqlite3 local si migras los datos)
+#
+#  SELinux (AlmaLinux/Rocky): agrega :z al final de cada volumen,
+#  igual que en docker-compose.yml de desarrollo. En Ubuntu/Debian
+#  no aplica.
+# ============================================================
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    # Imagen etiquetada por commit: el rollback es volver a subir con
+    # APP_VERSION=<commit anterior>.
+    image: induccion-megas-backend:${APP_VERSION:-latest}
+    container_name: induccion-megas-backend
+    restart: unless-stopped
+    # migrate va en el arranque: en local las migraciones se corrieron a
+    # mano, pero en el VPS un deploy sin migrate deja el codigo nuevo
+    # contra una base vieja. collectstatic se mantiene por si acaso; sin
+    # el bind mount del codigo es redundante con el build, pero no dan~a.
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn --bind 0.0.0.0:8000 core_project.wsgi:application --timeout 120"
+    # expose y NO ports: el backend solo lo alcanza el contenedor frontend
+    # por la red interna de compose (http://backend:8000). Nunca se
+    # publica al host ni a internet.
+    expose:
+      - "8000"
+    volumes:
+      # La base y los certificados viven FUERA del contenedor y del repo:
+      # sobreviven a rebuilds y son lo unico que hay que backupear.
+      - /root/induccion-megas/data/db.sqlite3:/app/db.sqlite3
+      - /root/induccion-megas/media:/app/media
+    environment:
+      # :? hace FALLAR el arranque si la variable falta o esta vacia.
+      # Mejor un contenedor que no sube a un sitio en produccion con la
+      # SECRET_KEY de desarrollo por defecto del settings.py.
+      - DEBUG=${DEBUG:-False}
+      - SECRET_KEY=${SECRET_KEY:?falta SECRET_KEY en .env}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-megas.com.co,www.megas.com.co}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-https://megas.com.co,https://www.megas.com.co}
+      # CORS cerrado: el frontend usa rutas relativas /api/..., no cruza
+      # origenes. Solo rellenar si algun dia el frontend vive en otro dominio.
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER:?falta EMAIL_HOST_USER en .env}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:?falta EMAIL_HOST_PASSWORD en .env}
+      - NOTIF_DESTINATARIOS=${NOTIF_DESTINATARIOS:?falta NOTIF_DESTINATARIOS en .env}
+      # projectId de Firebase, el mismo de frontend/src/config/firebase.js.
+      # Sin esto el backend no puede auditar ningun ID token y TODA la API
+      # responde 503: es el fallo que mas caro sale, porque no dice "no estas
+      # autorizado" sino "no hay por donde pasar", y a un solo alta le falta.
+      - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID:?falta FIREBASE_PROJECT_ID en .env}
+    logging:
+      # Sin limite, los logs de gunicorn llenan el disco del VPS.
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    image: induccion-megas-frontend:${APP_VERSION:-latest}
+    container_name: induccion-megas-frontend
+    restart: unless-stopped
+    ports:
+      # Loopback: a este puerto entra unicamente el nginx DEL HOST, que es
+      # quien termina el TLS. Nunca abrir 5137 en el firewall.
+      - "127.0.0.1:5137:80"
+    volumes:
+      # Los certificados PDF los sirve el nginx de este contenedor con
+      # alias (ver nginx.conf raiz, location /media/), no Django.
+      - /root/induccion-megas/media:/usr/share/nginx/html/media:ro
+    depends_on:
+      - backend
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

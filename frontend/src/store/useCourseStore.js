@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { api } from '../services/api';
+import { api, apiFetch } from '../services/api';
 import { auth } from '../config/firebase';
 
 
@@ -7,7 +7,7 @@ import { auth } from '../config/firebase';
 const fetchProgressFromDjango = async (userId) => {
   if (!userId) return [];
   try {
-    const res = await fetch(`/api/cursos/progreso/${userId}/`);
+    const res = await apiFetch(`/api/cursos/progreso/${userId}/`);
     if (res.ok) {
       return await res.json();
     }
@@ -102,7 +102,10 @@ export const useCourseStore = create((set, get) => ({
     if (!activeUserId || !courseId || !lessonId) return;
 
     try {
-      const res = await fetch(`/api/cursos/progreso/`, {
+      // El `user_id` del cuerpo ya no decide de quien es el progreso: el
+      // backend lo saca del token del header y lo ignora. Se sigue mandando
+      // para no cambiar el contrato de un endpoint que ya anda.
+      const res = await apiFetch('/api/cursos/progreso/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

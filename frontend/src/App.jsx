@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { ProtectedRoute } from './components/shared/ProtectedRoute';
+import { AuthenticatedRoute } from './components/shared/AuthenticatedRoute';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { CursosPage } from './pages/CursosPage';
@@ -23,7 +24,7 @@ function App() {
         {/* Redirigir la raíz a /cursos */}
         <Route path="/" element={<Navigate to="/cursos" replace />} />
 
-        {/* Rutas protegidas: requieren autenticación */}
+        {/* Rutas del curso: sesion de Firebase Y alta en Django */}
         <Route element={<ProtectedRoute />}>
           <Route element={<DashboardLayout />}>
 
@@ -32,8 +33,6 @@ function App() {
             <Route path="/cursos" element={<CursosPage />} />
             <Route path="/curso/:id" element={<CursoDetailPage />} />
             <Route path="/curso/:id/leccion/:leccionId" element={<CursoLeccionPage />} />
-            <Route path="/foros" element={<ForosPage />} />
-            <Route path="/recursos" element={<RecursosPage />} />
             <Route path="/calificaciones" element={<CalificacionesPage />} />
 
             {/* Fallback para rutas no definidas dentro del dashboard */}
@@ -45,6 +44,22 @@ function App() {
                 </p>
               </div>
             } />
+
+          </Route>
+        </Route>
+
+        {/* Foro y recursos: sesion de Firebase, sin exigir alta en Django.
+
+            Van en su propia rama y no dentro de ProtectedRoute porque el alta se
+            cerro solo para el curso. Sus APIs tampoco se cerraron, asi que
+            meterlos en el gate de Django los dejaba trabados sin salida. El
+            layout se vuelve a montar en cada rama: es el mismo componente y las
+            rutas son hermanas, no anidadas. */}
+        <Route element={<AuthenticatedRoute />}>
+          <Route element={<DashboardLayout />}>
+
+            <Route path="/foros" element={<ForosPage />} />
+            <Route path="/recursos" element={<RecursosPage />} />
 
           </Route>
         </Route>

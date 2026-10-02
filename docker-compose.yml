@@ -30,6 +30,9 @@ services:
       - EMAIL_HOST_USER=${EMAIL_HOST_USER:-}
       - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
       - NOTIF_DESTINATARIOS=${NOTIF_DESTINATARIOS:-}
+      # Sin default: si falta, el backend responde 503 a toda llamada a la
+      # API en vez de 401, que es lo que se vera si no se pone.
+      - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID:?falta FIREBASE_PROJECT_ID en .env}
   frontend:
     build:
       context: .
