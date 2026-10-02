@@ -232,7 +232,7 @@ export const CursoLeccionPage = () => {
           <h1 className="text-3xl font-bold text-gray-900 leading-tight">
             {currentLesson.id}. {currentLesson.title.replace(/^\d+\.\s*/, '')}
           </h1>
-          {course.progress === 100 ? (
+          {course.progress === 100 || isEvalLesson ? (
             // El progreso al 100% ya no significa "certificate listo": el
             // certificado depende de la nota. Este botón lleva a la evaluación,
             // que es donde el estudiante lo descarga o lo pide por correo.
