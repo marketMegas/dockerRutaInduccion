@@ -122,48 +122,24 @@ export const LoginPage = () => {
   return (
     <div className="min-h-screen flex font-sans">
       {/* Panel izquierdo - Branding */}
-      <div
-        className="hidden lg:flex lg:w-1/2 relative overflow-hidden flex-col items-center justify-center p-12 text-white"
-        style={{
-          background: 'linear-gradient(135deg, #b45309 0%, #f6811e 50%, #ff9d00 100%)',
-        }}
-      >
-        {/* Círculos decorativos de fondo */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden flex-col items-center justify-center p-12 bg-white lg:border-r lg:border-gray-100">
+        {/* Adorno: degradado diagonal naranja sobre el blanco */}
         <div
-          className="absolute -top-32 -left-32 w-96 h-96 rounded-full opacity-10"
-          style={{ background: 'radial-gradient(circle, #ffffff 0%, transparent 70%)' }}
+          className="pointer-events-none absolute inset-0"
+          style={{ background: 'linear-gradient(135deg, rgba(255,157,0,0.22) 0%, rgba(246,129,30,0.09) 45%, rgba(255,255,255,0) 100%)' }}
         />
-        <div
-          className="absolute -bottom-24 -right-24 w-80 h-80 rounded-full opacity-10"
-          style={{ background: 'radial-gradient(circle, #f6811e 0%, transparent 70%)' }}
-        />
-        <div
-          className="absolute top-1/2 right-0 w-64 h-64 rounded-full opacity-5"
-          style={{ background: 'radial-gradient(circle, #ffffff 0%, transparent 70%)', transform: 'translate(30%, -50%)' }}
-        />
-
         {/* Logo */}
         <div className="relative z-10 flex flex-col items-center text-center">
-          <div className="mb-8 p-4 bg-white/10 rounded-2xl backdrop-blur-sm border border-white/20">
-            <div className="relative inline-block">
-              <img
-                src={logoMegas}
-                alt="G-MAX Logo"
-                className="relative z-10 h-48 w-auto object-contain filter brightness-0 invert"
-              />
-              <img
-                src={logoMegas}
-                alt=""
-                aria-hidden="true"
-                className="absolute inset-0 h-48 w-auto object-contain blur-[3px] opacity-45 filter brightness-0 invert"
-              />
-            </div>
-          </div>
+          <img
+            src={logoMegas}
+            alt="G-MAX Logo"
+            className="mb-8 h-80 max-w-full w-auto object-contain"
+          />
 
-          <h1 className="text-4xl font-extrabold mb-4 leading-tight tracking-tight">
+          <h1 className="text-4xl font-extrabold mb-4 leading-tight tracking-tight text-gray-900">
             Ruta de Inducción
           </h1>
-          <p className="text-white/75 text-lg max-w-sm leading-relaxed">
+          <p className="text-gray-500 text-lg max-w-sm leading-relaxed">
             Tu plataforma de aprendizaje profesional en tecnología autoglp y comercialización.
           </p>
 
@@ -173,9 +149,9 @@ export const LoginPage = () => {
               { value: '100%', label: 'Online' },
               { value: '24/7', label: 'Acceso' },
             ].map((stat, i) => (
-              <div key={i} className="flex flex-col items-center p-4 bg-white/10 rounded-xl backdrop-blur-sm border border-white/20">
-                <span className="text-2xl font-black text-white">{stat.value}</span>
-                <span className="text-xs text-white/60 mt-1 font-medium">{stat.label}</span>
+              <div key={i} className="flex flex-col items-center p-4 bg-gray-50 rounded-xl border border-gray-100">
+                <span className="text-2xl font-black text-gray-900">{stat.value}</span>
+                <span className="text-xs text-gray-500 mt-1 font-medium">{stat.label}</span>
               </div>
             ))}
           </div>
@@ -183,24 +159,20 @@ export const LoginPage = () => {
       </div>
 
       {/* Panel derecho - Formulario */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 bg-[#f8fafc] relative overflow-hidden">
-        {/* Círculos verdes difuminados de fondo */}
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 bg-white relative overflow-y-auto">
+        {/* Adorno: degradado diagonal naranja sobre el blanco */}
         <div
-          className="absolute -top-16 -right-12 w-80 h-80 rounded-full opacity-35 blur-[28px]"
-          style={{ background: 'radial-gradient(circle, #5fdb44 0%, transparent 70%)' }}
+          className="pointer-events-none absolute inset-0"
+          style={{ background: 'linear-gradient(225deg, rgba(255,157,0,0.18) 0%, rgba(246,129,30,0.07) 45%, rgba(255,255,255,0) 100%)' }}
         />
-        <div
-          className="absolute -bottom-16 -left-12 w-72 h-72 rounded-full opacity-35 blur-[28px]"
-          style={{ background: 'radial-gradient(circle, #5fdb44 0%, transparent 70%)' }}
-        />
-        <div className="relative z-10 w-full max-w-md">
+        <div className="relative z-10 w-full max-w-md my-auto">
 
           {/* Logo móvil */}
           <div className="flex lg:hidden justify-center mb-8">
             <img
               src={logoMegas}
               alt="G-MAX Logo"
-              className="h-27 w-auto object-contain"
+              className="h-48 max-w-full w-auto object-contain"
             />
           </div>
 

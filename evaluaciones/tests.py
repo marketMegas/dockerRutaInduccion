@@ -725,3 +725,20 @@ class AdminEvaluacionesTest(TestCase):
         evaluacion = Evaluacion.objects.get(titulo='Evaluación final')
         self.assertFalse(evaluacion.activa)
         self.assertEqual(evaluacion.total_preguntas, 0)
+
+    def test_el_listado_muestra_una_evaluacion_sin_preguntas(self):
+        # Regresion: la columna "Preguntas" armaba el cartel rojo con
+        # format_html('<b ...></b>') sin argumentos. Con la tabla vacia nadie
+        # llamaba a la columna y el admin parecia sano; con una evaluacion de
+        # 0 preguntas, Django 6 lanzaba TypeError y el changelist entero
+        # respondia 500.
+        evaluacion = Evaluacion.objects.create(
+            course=self.curso, titulo='Todavía sin cargar',
+            puntaje_aprobacion=90, activa=False,
+        )
+
+        respuesta = self.client.get('/admin/evaluaciones/evaluacion/')
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'sin preguntas')
+        self.assertEqual(evaluacion.total_preguntas, 0)

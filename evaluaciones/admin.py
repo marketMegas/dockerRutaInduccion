@@ -2,7 +2,7 @@ from django import forms
 from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
 from django.http import HttpResponseRedirect
-from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 
 from .models import Evaluacion, Opcion, Pregunta
 from .serializers import total_correctas
@@ -120,7 +120,11 @@ class EvaluacionAdmin(admin.ModelAdmin):
     def total_preguntas(self, obj):
         total = obj.total_preguntas
         if not total:
-            return format_html('<b style="color:#c00">0 (sin preguntas)</b>')
+            # mark_safe y no format_html: sin marcadores que sustituir,
+            # format_html() sin argumentos lanza TypeError en Django 6 y
+            # tiraba el changelist entero (500) en cuanto habia una
+            # evaluacion sin preguntas.
+            return mark_safe('<b style="color:#c00">0 (sin preguntas)</b>')
         return f'{total}'
 
     def save_related(self, request, form, formsets, change):

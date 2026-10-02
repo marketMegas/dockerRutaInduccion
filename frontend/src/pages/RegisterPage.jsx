@@ -95,35 +95,23 @@ export const RegisterPage = () => {
   return (
     <div className="min-h-screen flex font-sans">
       {/* Panel izquierdo - Branding */}
-      <div
-        className="hidden lg:flex lg:w-1/2 relative overflow-hidden flex-col items-center justify-center p-12 text-white"
-        style={{
-          background: 'linear-gradient(135deg, #b45309 0%, #f6811e 50%, #ff9d00 100%)',
-        }}
-      >
-        {/* Círculos decorativos */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden flex-col items-center justify-center p-12 bg-white lg:border-r lg:border-gray-100">
+        {/* Adorno: degradado diagonal naranja sobre el blanco */}
         <div
-          className="absolute -top-32 -left-32 w-96 h-96 rounded-full opacity-10"
-          style={{ background: 'radial-gradient(circle, #ffffff 0%, transparent 70%)' }}
+          className="pointer-events-none absolute inset-0"
+          style={{ background: 'linear-gradient(135deg, rgba(255,157,0,0.22) 0%, rgba(246,129,30,0.09) 45%, rgba(255,255,255,0) 100%)' }}
         />
-        <div
-          className="absolute -bottom-24 -right-24 w-80 h-80 rounded-full opacity-10"
-          style={{ background: 'radial-gradient(circle, #f6811e 0%, transparent 70%)' }}
-        />
-
         <div className="relative z-10 flex flex-col items-center text-center">
-          <div className="mb-8 p-4 bg-white/10 rounded-2xl backdrop-blur-sm border border-white/20">
-            <img
-              src={logoMegas}
-              alt="Logo de Megas"
-              className="h-16 w-auto object-contain filter brightness-0 invert"
-            />
-          </div>
+          <img
+            src={logoMegas}
+            alt="Logo de Megas"
+            className="mb-8 h-80 max-w-full w-auto object-contain"
+          />
 
-          <h1 className="text-4xl font-extrabold mb-4 leading-tight tracking-tight">
-            Únete a la <span className="text-white">Ruta de Inducción</span>
+          <h1 className="text-4xl font-extrabold mb-4 leading-tight tracking-tight text-gray-900">
+            Únete a la <span className="text-[#f6811e]">Ruta de Inducción</span>
           </h1>
-          <p className="text-white/75 text-lg max-w-sm leading-relaxed">
+          <p className="text-gray-500 text-lg max-w-sm leading-relaxed">
             Crea tu cuenta y accede a todos los cursos de formación profesional.
           </p>
 
@@ -134,7 +122,7 @@ export const RegisterPage = () => {
               'Certificados de completion',
               'Soporte del equipo',
             ].map((benefit, i) => (
-              <div key={i} className="flex items-center gap-3 text-sm text-white/80">
+              <div key={i} className="flex items-center gap-3 text-sm text-gray-600">
                 <CheckCircle2 className="w-5 h-5 text-[#f6811e] flex-shrink-0" />
                 <span>{benefit}</span>
               </div>
@@ -144,15 +132,20 @@ export const RegisterPage = () => {
       </div>
 
       {/* Panel derecho - Formulario */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 bg-[#f8fafc] overflow-y-auto">
-        <div className="w-full max-w-md py-8">
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 bg-white relative overflow-y-auto">
+        {/* Adorno: degradado diagonal naranja sobre el blanco */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{ background: 'linear-gradient(225deg, rgba(255,157,0,0.18) 0%, rgba(246,129,30,0.07) 45%, rgba(255,255,255,0) 100%)' }}
+        />
+        <div className="w-full max-w-md py-8 my-auto">
 
           {/* Logo móvil */}
           <div className="flex lg:hidden justify-center mb-8">
             <img
               src={logoMegas}
               alt="Logo de Megas"
-              className="h-12 w-auto object-contain"
+              className="h-48 max-w-full w-auto object-contain"
             />
           </div>
 
