@@ -1,0 +1,22 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_list %}
+
+{% comment %}
+El pie del changelist es el paginador del admin. Con una sola pagina, Django lo
+usa unicamente para imprimir el total ("7 Certificados"), y ese numero no aporta
+nada: lo que interesa es el conteo por alumno de la columna "Certificados del
+usuario". Se omite el pie mientras haya una sola pagina y se deja tal cual
+cuando de verdad hace falta navegar entre paginas.
+
+Este texto va en un {% comment %} y no en un {# #} a proposito: los comentarios
+de una linea de Django no cruzan el salto de linea, y un {% pagination %} que
+quede adentro del comentario se termina parseando como tag real.
+{% endcomment %}
+
+{% block pagination %}
+  {% if cl.paginator.num_pages > 1 %}
+    <div class="changelist-footer">
+      {% pagination cl %}
+    </div>
+  {% endif %}
+{% endblock %}

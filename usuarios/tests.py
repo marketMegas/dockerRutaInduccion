@@ -533,3 +533,35 @@ class SinAltaEnLaApiTest(ConSesion, TestCase):
         )
 
         self.assertEqual(respuesta.status_code, 403)
+
+
+class AdminSinResumenDeHashTest(TestCase):
+    """El campo de contrasena del admin no debe mostrar el resumen del hash.
+
+    Django lo trae por defecto ("algorithm: pbkdf2_sha256 / iterations: ... /
+    salt: ... / hash: ...") y eso no tiene por que quedar a la vista en una
+    plataforma donde la autenticacion la maneja Firebase.
+    """
+
+    def setUp(self):
+        self.admin = User.objects.create_superuser(
+            username='jefa', email='jefa@ejemplo.co', password='ClaveDePrueba123',
+        )
+        self.alumno = User.objects.create_user(
+            username='alumno', email='alumno@ejemplo.co', password='OtraClave123',
+        )
+        self.client.force_login(self.admin)
+
+    def _cambio(self):
+        return self.client.get(f'/admin/auth/user/{self.alumno.pk}/change/')
+
+    def test_no_expone_el_resumen_del_hash(self):
+        contenido = self._cambio().content.decode()
+
+        self.assertNotIn('algorithm', contenido)
+        self.assertNotIn('pbkdf2_sha256', contenido)
+        self.assertNotIn('iterations', contenido)
+
+    def test_conserva_el_boton_para_restablecer_la_contrasena(self):
+        # Se quita el resumen, no la capacidad de administrar la contrasena.
+        self.assertContains(self._cambio(), 'Reset password')

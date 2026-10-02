@@ -403,6 +403,8 @@ class CertificadoTest(ConSesion, TestCase):
         # Cada cuerpo con lo suyo: el del estudiante no le manda el link al
         # panel, que no puede ver.
         self.assertIn('/admin/courses/certificado/', a_internos.body)
+        # ...y al listado, no al detalle: la pagina de cambio esta cerrada.
+        self.assertNotIn('/change/', a_internos.body)
         self.assertNotIn('/admin/', al_estudiante.body)
         self.assertIn('Ana Perez', al_estudiante.body)
         self.assertIn('Que es el autoglp', al_estudiante.body)
@@ -752,3 +754,78 @@ class ReenviarAvisoAdminTest(TestCase):
         self.assertIn('smtp caido', certificado.notificacion_error)
         # El contador si sube: el intento se hizo, aunque el correo no saliera.
         self.assertEqual(certificado.intentos, 1)
+
+
+class CertificadoAdminSinAccesoAlPdfTest(TestCase):
+    """El admin cuenta certificados por alumno, pero no deja abrirlos ni bajarlos.
+
+    Antes la fila linkeaba a la pagina de cambio y ahi colgaba un enlace
+    "Descargar PDF" armado con `reverse` y `format_html` que nunca se
+    importaron: abrir un certificado tiraba NameError. Ahora RH ve el listado
+    con el conteo por alumno y nada mas.
+    """
+
+    def setUp(self):
+        self.admin = AdminUser.objects.create_superuser(
+            'rh@megas.co', 'clave-de-prueba', 'RRHH',
+        )
+        self.client.force_login(self.admin)
+        for course_id in ('1', '2'):
+            Certificado.objects.create(
+                user_id='uid-ana', user_name='Ana Perez',
+                user_email='ana@ejemplo.co', course_id=course_id,
+                course_name=f'Curso {course_id}',
+                archivo=f'Certificados_Emitidos/ana-{course_id}.pdf',
+            )
+        Certificado.objects.create(
+            user_id='uid-beto', user_name='Beto Diaz',
+            user_email='beto@ejemplo.co', course_id='1',
+            course_name='Curso 1', archivo='Certificados_Emitidos/beto.pdf',
+        )
+
+    def test_el_listado_cuenta_los_certificados_de_cada_alumno(self):
+        respuesta = self.client.get('/admin/courses/certificado/')
+
+        self.assertEqual(respuesta.status_code, 200)
+        # El conteo es por alumno, no por fila: Ana tiene dos y Beto uno.
+        contados = {
+            fila.user_email: fila.total_del_usuario
+            for fila in respuesta.context['cl'].result_list
+        }
+        self.assertEqual(contados['ana@ejemplo.co'], 2)
+        self.assertEqual(contados['beto@ejemplo.co'], 1)
+
+    def test_el_detalle_no_se_abre(self):
+        certificado = Certificado.objects.first()
+
+        respuesta = self.client.get(
+            f'/admin/courses/certificado/{certificado.id}/change/'
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertEqual(respuesta.url, '/admin/courses/certificado/')
+
+    def test_el_listado_no_ofrece_ni_el_detalle_ni_la_descarga(self):
+        certificado = Certificado.objects.first()
+
+        contenido = self.client.get('/admin/courses/certificado/').content.decode()
+
+        self.assertNotIn('Descargar PDF', contenido)
+        self.assertNotIn(
+            f'/admin/courses/certificado/{certificado.id}/change/', contenido,
+        )
+
+    def test_el_pie_no_repite_el_total_de_certificados(self):
+        # Con una sola pagina el paginador del admin solo servia para imprimir
+        # "7 Certificados". Ese total es ruido: el conteo que importa es el de
+        # la columna por alumno.
+        contenido = self.client.get('/admin/courses/certificado/').content.decode()
+
+        self.assertNotIn('changelist-footer', contenido)
+
+    def test_el_pie_sigue_intacto_en_los_demas_listados(self):
+        # El override de la plantilla es del changelist de Certificado y de
+        # ningun otro: un cambio de mas aca sacaria el paginador de toda la app.
+        contenido = self.client.get('/admin/courses/calificacion/').content.decode()
+
+        self.assertIn('changelist-footer', contenido)

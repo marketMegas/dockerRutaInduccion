@@ -4,6 +4,24 @@ import { useAuth } from '../context/AuthContext';
 import logoMegas from '../../../nuevoLOGOMegas.png';
 import { Eye, EyeOff, LogIn, AlertCircle, Loader2, CheckCircle } from 'lucide-react';
 
+// `sendPasswordResetEmail` no tiene timeout propio: si la red se cuelga (una
+// extension, un antivirus, el wifi a medias) la promesa no se resuelve y el
+// boton se quedaba en "Enviando..." para siempre. Con esto, a los 15s se corta
+// solo y se le puede decir algo al usuario.
+const TIEMPO_LIMITE_MS = 15000;
+
+const conTiempoLimite = (promesa, ms = TIEMPO_LIMITE_MS) => {
+  let id;
+  const limite = new Promise((_, rechazar) => {
+    id = setTimeout(() => {
+      const error = new Error('La solicitud tardó demasiado.');
+      error.code = 'app/timeout';
+      rechazar(error);
+    }, ms);
+  });
+  return Promise.race([promesa, limite]).finally(() => clearTimeout(id));
+};
+
 export const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -64,8 +82,12 @@ export const LoginPage = () => {
 
     setLoading(true);
     try {
-      await resetPassword(email);
-      setMessage('Se ha enviado un enlace para restablecer tu contraseña al correo ingresado.');
+      await conTiempoLimite(resetPassword(email));
+      // Firebase tiene activada la proteccion anti-enumeracion: responde OK
+      // aunque la cuenta no exista y, en ese caso, no manda nada. Prometer
+      // "se envio" seria mentir. Y como el remitente por defecto de Firebase
+      // suele caer en spam, conviene avisarlo.
+      setMessage('Si existe una cuenta con ese correo, recibirás un enlace para restablecer tu contraseña. Revisa también la carpeta de spam.');
     } catch (err) {
       console.error('Reset password error:', err);
       switch (err.code) {
@@ -75,8 +97,22 @@ export const LoginPage = () => {
         case 'auth/invalid-email':
           setError('El formato del correo electrónico no es válido.');
           break;
+        case 'auth/too-many-requests':
+          setError('Demasiados intentos. Espera unos minutos e intenta de nuevo.');
+          break;
+        case 'auth/network-request-failed':
+        case 'app/timeout':
+          setError('No pudimos contactar el servicio de correo. Revisa tu conexión e intenta de nuevo.');
+          break;
+        case 'auth/operation-not-allowed':
+          setError('La recuperación con Correo y Contraseña está deshabilitada. Contacta al administrador.');
+          break;
+        case 'auth/unauthorized-continue-uri':
+        case 'auth/missing-continue-uri':
+          setError('La dirección de recuperación no está autorizada. Contacta al administrador.');
+          break;
         default:
-          setError('Error al enviar el correo. Por favor, intenta de nuevo.');
+          setError(`Error al enviar el correo: ${err.message || err.code || 'Ocurrió un error inesperado.'}`);
       }
     } finally {
       setLoading(false);
@@ -297,8 +333,7 @@ export const LoginPage = () => {
                 <button
                   type="button"
                   onClick={() => { setIsRecovering(true); setError(''); setMessage(''); }}
-                  disabled={loading}
-                  className="text-sm font-semibold text-[#f6811e] hover:text-[#b45309] transition-colors bg-transparent border-none p-0 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                  className="text-sm font-semibold text-[#f6811e] hover:text-[#b45309] transition-colors bg-transparent border-none p-0 cursor-pointer"
                 >
                   ¿Olvidaste tu contraseña?
                 </button>

@@ -1,5 +1,8 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.core.files.storage import default_storage
+from django.db.models import Count, OuterRef, Subquery
+from django.http import HttpResponseRedirect
+from django.urls import reverse
 from .models import Course, Module, Lesson, UserProgress, Calificacion, Certificado
 from .views import _adjunto_certificado, _cuerpo_certificado, _enviar
 from evaluaciones.models import Evaluacion
@@ -71,16 +74,54 @@ class CalificacionAdmin(admin.ModelAdmin):
 
 @admin.register(Certificado)
 class CertificadoAdmin(admin.ModelAdmin):
-    # Los certificados notificados se consultan desde aca, y el enlace del
-    # correo apunta a la fila (/admin/courses/certificado/<id>/change/), asi que
-    # el registro tiene que existir aunque el aviso nunca haya salido.
-    list_display = ('user_name', 'user_email', 'course_name', 'notificado', 'intentos', 'fecha_emision')
+    # El listado es lo unico que se abre: dice quien tiene certificado, de que
+    # curso y cuantos acumula cada alumno. El PDF no se consulta ni se baja
+    # desde aca (ver `list_display_links` y `change_view` mas abajo).
+    list_display = (
+        'user_name', 'user_email', 'course_name', 'total_del_usuario',
+        'notificado', 'intentos', 'fecha_emision',
+    )
     list_filter = ('notificado', 'course_id')
     search_fields = ('user_id', 'user_name', 'user_email', 'course_id', 'course_name')
     # El estado del aviso solo se cambia con la accion de reenvio: editarlo a
     # mano dejaria el registro mintiendo sobre si el correo salio o no.
-    readonly_fields = ('archivo', 'token', 'enlace_descarga', 'intentos', 'fecha_emision', 'notificado', 'notificacion_error')
+    readonly_fields = ('archivo', 'token', 'intentos', 'fecha_emision', 'notificado', 'notificacion_error')
     actions = ('reenviar_aviso',)
+    # Sin enlaces en las filas: no se entra al detalle de un certificado. Antes
+    # la primera columna linkeaba a la pagina de cambio, que ademas tenia un
+    # enlace "Descargar PDF" armado con `reverse` y `format_html` que nunca se
+    # importaron: abrir un certificado en /admin tiraba NameError.
+    list_display_links = None
+
+    def get_queryset(self, request):
+        # Cuantos certificados tiene ese mismo alumno, consultado en la query
+        # con una subconsulta y no con un `.count()` por fila: el listado crece
+        # con cada emision y un N+1 aca se nota.
+        total = (
+            Certificado.objects
+            .filter(user_id=OuterRef('user_id'))
+            .values('user_id')
+            .annotate(n=Count('id'))
+            .values('n')
+        )
+        return (
+            super().get_queryset(request)
+            .annotate(total_del_usuario=Subquery(total))
+        )
+
+    @admin.display(description='Certificados del usuario', ordering='total_del_usuario')
+    def total_del_usuario(self, obj):
+        return obj.total_del_usuario
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        # La pagina de detalle no se abre: muestra los datos de la emision y
+        # antes colgaba de ahi la descarga del PDF. Se vuelve al listado, que es
+        # donde esta el conteo por alumno, en vez de dejar la URL muerta.
+        messages.warning(
+            request,
+            'El detalle de un certificado no esta disponible desde /admin.',
+        )
+        return HttpResponseRedirect(reverse('admin:courses_certificado_changelist'))
 
     @admin.action(description='Reenviar aviso de certificado')
     def reenviar_aviso(self, request, queryset):
@@ -137,17 +178,4 @@ class CertificadoAdmin(admin.ModelAdmin):
             f'{enviados} reenviado(s), {fallidos} con error de SMTP, '
             f'{omitidos} ya notificados (omitidos), {sin_archivo} sin archivo en disco.',
             level='warning' if (fallidos or sin_archivo) else 'info',
-        )
-
-    @admin.display(description='Enlace de descarga')
-    def enlace_descarga(self, obj):
-        if not obj or not obj.token:
-            return '—'
-        url = reverse(
-            'descargar_certificado',
-            args=[obj.user_id, obj.course_id, obj.token],
-        )
-        return format_html(
-            '<a href="{}" target="_blank" rel="noopener noreferrer">Descargar PDF</a>',
-            url,
         )

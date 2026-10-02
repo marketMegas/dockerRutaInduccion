@@ -2,6 +2,7 @@ import json
 import os
 import re
 import secrets
+from urllib.parse import urlencode
 from django.http import FileResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -206,8 +207,13 @@ def _cuerpo_certificado(request, certificado, motivo, para_estudiante=False):
             f"con quien lo necesites."
         )
 
+    # El detalle de un certificado ya no se abre desde /admin, asi que el aviso
+    # interno apunta al listado filtrado por ese alumno: ahi se ven sus
+    # certificados y cuantos son, que es lo que RH necesita, sin exponer el PDF.
+    busqueda = certificado.user_email or certificado.user_name or certificado.user_id
     panel = request.build_absolute_uri(
-        reverse('admin:courses_certificado_change', args=[certificado.id])
+        reverse('admin:courses_certificado_changelist')
+        + '?' + urlencode({'q': busqueda})
     )
 
     return (
