@@ -223,7 +223,9 @@ cd /root/induccion-megas
 
 cp filesParaDeploy/.env.produccion .env
 chmod 600 .env
+
 # Rellenar SECRET_KEY con:  openssl rand -base64 48
+
 # Y sustituir cada marcador CAMBIAR_* por su valor real.
 
 ./deploy.sh
@@ -323,6 +325,105 @@ Si ese deploy corrió migraciones, hay que restaurar antes el `db.sqlite3` del b
 > la imagen del backend del commit anterior. `deploy.sh` borra a mano las de más de dos commits
 > atrás, y conserva la actual y la anterior para que el rollback tenga con qué correr.
 
+### Reemplazar un despliegue que YA tiene datos reales
+
+Este es otro camino, y el de arriba **no sirve aquí**. Si `/root/induccion-megas` ya contiene
+`data/db.sqlite3` con alumnos y `media/` con certificados emitidos, el `git clone` se niega:
+
+```
+fatal: destination path '/root/induccion-megas' already exists and is not an empty directory.
+```
+
+Y no tiene sentido vaciar el directorio para forzar el clone, porque `data/` y `media/` están
+fuera de git: si se borran, no hay rebuild que los recupere. La base de datos de SQLite es **el
+archivo completo**, no un esquema que se pueda regenerar.
+
+**Reconocimiento previo**, sin tocar nada:
+
+```bash
+
+# que corre hoy y en que puerto
+docker ps --format "{{.Names}}  {{.Image}}  {{.Status}}  {{.Ports}}"
+
+# a que puerto manda el nginx del host
+sudo grep -iE "server_name|proxy_pass" /etc/nginx/sites-enabled/*
+
+# que migraciones tiene aplicadas la base actual
+docker exec <contenedor-backend> python manage.py showmigrations
+```
+
+**El procedimiento**:
+
+```bash
+
+# 1. RESPALDO FUERA del servidor. Este paso no es opcional.
+sudo systemctl stop docker
+sudo tar czf /tmp/megas-respaldo-$(date +%F).tar.gz \
+    /root/induccion-megas/data /root/induccion-megas/media /root/induccion-megas/.env
+scp /tmp/megas-respaldo-*.tar.gz ~/            # <- fuera del VPS
+
+# 2. Apartar el despliegue viejo. mv, no rm: esto es el rollback.
+sudo mv /root/induccion-megas /root/induccion-megas-VIEJO
+
+# 3. Ahora si, el clone (el directorio ya no existe)
+sudo git clone git@github.com:marketMegas/dockerRutaInduccion.git /root/induccion-megas
+cd /root/induccion-megas
+
+# 4. Devolver los datos reales
+sudo cp -a /root/induccion-megas-VIEJO/data  /root/induccion-megas/data
+sudo cp -a /root/induccion-megas-VIEJO/media /root/induccion-megas/media
+sudo cp -a /root/induccion-megas-VIEJO/.env   /root/induccion-megas/.env
+sudo chmod 600 /root/induccion-megas/.env
+
+# 5. Ver QUE va a migrar la base antes de hacerlo
+sudo docker compose -f docker-compose.prod.yml run --rm backend python manage.py migrate --plan
+
+# 6. Ya si, el deploy
+sudo ./deploy.sh
+```
+
+**Rollback**, si algo sale mal:
+
+```bash
+sudo docker compose -f /root/induccion-megas/docker-compose.prod.yml down
+sudo rm -rf /root/induccion-megas
+sudo mv /root/induccion-megas-VIEJO /root/induccion-megas
+sudo docker compose -f /root/induccion-megas/docker-compose.prod.yml up -d
+```
+
+#### Las migraciones corren solas contra datos reales
+
+`deploy.sh` **no pide confirmación**: el `command` del contenedor ejecuta `migrate` en cada
+arranque. Si el código nuevo trae una migración destructiva, se aplica a la base de producción sin
+preguntar. Por eso el paso 5: `migrate --plan` dice exactamente qué tablas se van a tocar antes de
+que ocurra.
+
+#### La ruta `/rutainduccion` se conserva sola, el puerto hay que verificarlo
+
+El frontend se compila a `/rutainduccion` dentro del contenedor y el compose lo publica en
+`127.0.0.1:5137`. Si el nginx del host ya envía `/rutainduccion/` a ese puerto, **no hay que tocar
+nginx**: el mismo nombre y la misma ruta siguen funcionando.
+
+Si hoy apunta a otro puerto, hay que cambiar el `ports:` del `docker-compose.prod.yml`, no la
+configuración de nginx. Por eso el `grep` de `proxy_pass` del reconocimiento.
+
+#### Verificación posterior
+
+```bash
+sudo docker compose -f docker-compose.prod.yml ps
+sudo docker compose -f docker-compose.prod.yml logs --tail=50 backend
+
+# el login tiene que funcionar de verdad, no solo devolver 200
+
+# Firebase Console > Authentication > Authorized domains debe incluir el dominio
+```
+
+Un `401` en `/api/cursos/` es lo correcto sin token. Si devuelve `503` en vez de `401`, falta
+`FIREBASE_PROJECT_ID` en el `.env`.
+
+Y el paso que casi siempre se olvida: si el dominio no estaba antes en **Firebase Console →
+Authentication → Authorized domains**, el login falla **solo en producción**.
+
 ### Backups
 
 ```bash
@@ -356,6 +457,7 @@ falla **solo en producción**.
 El `deploy.sh` hace `git pull`, así que el VPS se autentica en GitHub. Con SSH:
 
 ```bash
+
 # /root/.ssh/config
 Host github.com
     HostName github.com
