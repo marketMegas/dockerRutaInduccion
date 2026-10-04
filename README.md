@@ -24,12 +24,19 @@ Firebase y despliegue en Docker.
 ├── frontend/               SPA de React
 │   ├── src/config/firebase.js    config del cliente web
 │   └── tests/                    pruebas de las reglas de Firestore
-├── filesParaDeploy/        lo que se copia al VPS (ver "Despliegue")
+├── filesParaDeploy/        solo lo que se instala una vez a mano (nginx, .env)
 ├── nginx.conf              nginx del contenedor frontend
 ├── docker-compose.yml      desarrollo
+├── docker-compose.prod.yml PRODUCCION (en la raiz a proposito)
+├── deploy.sh               produccion (en la raiz a proposito)
+├── backup.sh               respaldo diario (en la raiz a proposito)
 ├── dev.sh / dev.ps1        arranque local SIN Docker
 └── requirements.txt        versiones fijadas a propósito
 ```
+
+> `docker-compose.prod.yml`, `deploy.sh` y `backup.sh` están **en la raíz**, no en
+> `filesParaDeploy/`, porque `deploy.sh` los busca ahí. Un `git clone` en el VPS los deja donde se
+> necesitan y no hay que copiar nada a mano antes del primer deploy.
 
 ---
 
@@ -202,8 +209,32 @@ cual.
 
 ## Despliegue
 
-Todo lo de `filesParaDeploy/` está pensado para copiarse al VPS. Los archivos ya traen el
-procedimiento completo en sus propios comentarios; esta es la secuencia.
+`docker-compose.prod.yml`, `deploy.sh` y `backup.sh` están **en la raíz del repo** para que un
+`git clone` en el VPS los deje en la posición que `deploy.sh` espera. `filesParaDeploy/` conserva
+solo lo que se instala a mano **una vez**: el nginx del host y la plantilla del `.env`.
+
+### Desde cero en un VPS nuevo
+
+```bash
+sudo apt install -y docker.io docker-compose-v2 sqlite3 git
+
+sudo git clone git@github.com:marketMegas/dockerRutaInduccion.git /root/induccion-megas
+cd /root/induccion-megas
+
+cp filesParaDeploy/.env.produccion .env
+chmod 600 .env
+# Rellenar SECRET_KEY con:  openssl rand -base64 48
+# Y sustituir cada marcador CAMBIAR_* por su valor real.
+
+./deploy.sh
+```
+
+`deploy.sh` se encarga de crear `data/` y `media/`, y de hacer el `touch data/db.sqlite3`. El
+superusuario es el único paso que queda manual:
+
+```bash
+docker compose -f docker-compose.prod.yml exec backend python manage.py createsuperuser
+```
 
 ### En el VPS
 
@@ -217,15 +248,6 @@ procedimiento completo en sus propios comentarios; esta es la secuencia.
 | `/root/induccion-megas/backup.sh` | respaldo diario |
 | `/root/induccion-megas/docker-compose.prod.yml` | compose de producción |
 | `/root/backups/` | respaldos, 14 días de retención |
-
-Ojo con el layout: `deploy.sh` espera `docker-compose.prod.yml` **en la raíz** de la app, pero el
-archivo vive en `filesParaDeploy/`. Hay que copiarlo:
-
-```bash
-cp filesParaDeploy/docker-compose.prod.yml /root/induccion-megas/
-cp filesParaDeploy/deploy.sh           /root/induccion-megas/ && chmod +x /root/induccion-megas/deploy.sh
-cp filesParaDeploy/backup.sh           /root/induccion-megas/ && chmod +x /root/induccion-megas/backup.sh
-```
 
 ### Las variables del `.env` no son todas opcionales
 
@@ -260,7 +282,26 @@ o por un túnel hay que sobreescribirlos o Django responde `DisallowedHost`.
 ```
 
 Hace, en orden: `git pull` → tag `APP_VERSION` con el commit → `backup.sh` → `build` →
-`up -d` → `prune` de imágenes viejas.
+`up -d` → limpieza de imágenes viejas.
+
+Antes de tocar nada hace un **preflight**: comprueba que existan `docker-compose.prod.yml`,
+`backup.sh` y `.env`; que las cinco variables que el compose exige con `:?` no estén vacías; crea
+`data/` y `media/` y hace el `touch data/db.sqlite3`; y se niega a seguir si hay cambios locales
+sin commitear, porque el `pull` los pisaría.
+
+Las cinco variables que se validan:
+
+| Variable | Qué pasa si falta |
+|---|---|
+| `SECRET_KEY` | el compose ni arranca |
+| `FIREBASE_PROJECT_ID` | **toda la API responde `503`**, no `401` |
+| `EMAIL_HOST_USER` | el compose ni arranca |
+| `EMAIL_HOST_PASSWORD` | el compose ni arranca |
+| `NOTIF_DESTINATARIOS` | el compose ni arranca |
+
+`FIREBASE_PROJECT_ID` merece atención aparte: si falta, el backend no puede auditar ningún token.
+El síntoma no dice "no estás autorizado" sino "no hay por dónde pasar", que es el fallo más caro
+de diagnosticar porque no señala la causa.
 
 Lo que **no** es automático:
 
@@ -275,6 +316,12 @@ APP_VERSION=<commit anterior> docker compose -f docker-compose.prod.yml up -d
 ```
 
 Si ese deploy corrió migraciones, hay que restaurar antes el `db.sqlite3` del backup.
+
+> **Por qué `deploy.sh` no usa `docker image prune` para esto.** Cada deploy etiqueta sus imágenes
+> con el commit, así que `docker image prune -f` **no las toca**: solo borra imágenes huérfanas, y
+> las de cada commit quedan ahí para siempre. Medido en el VPS: tras dos deploys seguían 310 MB de
+> la imagen del backend del commit anterior. `deploy.sh` borra a mano las de más de dos commits
+> atrás, y conserva la actual y la anterior para que el rollback tenga con qué correr.
 
 ### Backups
 

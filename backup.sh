@@ -6,11 +6,12 @@
 #  fuera de las imagenes y de git. Si se pierden, no hay rebuild
 #  que los recupere.
 #
-#  Instalacion:
-#    cp filesParaDeploy/backup.sh /root/induccion-megas/backup.sh
-#    chmod +x /root/induccion-megas/backup.sh
+#  Este archivo esta en la raiz del repo: un `git clone` en el VPS
+#  lo deja en su sitio, sin copiar nada a mano.
+#
+#  Instalacion (solo el cron, el archivo ya esta):
 #    # cron diario a las 3:00 AM:
-#    (crontab -l; echo "0 3 * * * /root/induccion-megas/backup.sh") | crontab -
+#    (crontab -l 2>/dev/null; echo "0 3 * * * /root/induccion-megas/backup.sh") | crontab -
 #
 #  Requiere sqlite3 en el host:  sudo apt install -y sqlite3
 # ============================================================
