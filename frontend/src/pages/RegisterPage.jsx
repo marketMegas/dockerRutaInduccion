@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import logoMegas from '../../../nuevoLOGOMegas.png';
+import logoMegas from '../../nuevoLOGOMegas.png';
 import { Eye, EyeOff, UserPlus, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 
 export const RegisterPage = () => {

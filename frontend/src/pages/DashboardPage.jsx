@@ -1,4 +1,4 @@
-import heroImage from '../../../nuevoLOGOMegas.png';
+import heroImage from '../../nuevoLOGOMegas.png';
 
 // La Ruta de Inducción quedó reducida a su título. Antes esta página traía
 // ~1000 líneas de contenido fijo en el código (objetivo, descripción del
