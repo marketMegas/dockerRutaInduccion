@@ -214,7 +214,13 @@ export const CursoLeccionPage = () => {
     <div className="flex flex-col lg:grid lg:grid-cols-3 gap-8 items-start w-full max-w-[1600px] mx-auto">
 
       {/* --- COLUMNA PRINCIPAL (CONTENIDO) --- */}
-      <div className="w-full lg:col-span-2 flex flex-col gap-6">
+      {/* min-w-0 en las dos columnas: `lg:grid-cols-3` compila a
+          repeat(3, minmax(0,1fr)), asi que el track NO puede crecer cuando el
+          contenido es mas ancho que su columna. Sin esto, un titulo de leccion
+          largo del admin no se ajusta: la caja se derrama encima de la columna
+          vecina. `min-w-0` les deja encogerse por debajo de su min-content
+          para que el texto de dentro sea el que se parte. */}
+      <div className="w-full min-w-0 lg:col-span-2 flex flex-col gap-6">
 
         {/* 1. Enlace de retorno */}
         <div>
@@ -229,7 +235,7 @@ export const CursoLeccionPage = () => {
 
         {/* 2. Título principal */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h1 className="text-3xl font-bold text-gray-900 leading-tight">
+          <h1 className="text-3xl font-bold text-gray-900 leading-tight break-words">
             {currentLesson.id}. {currentLesson.title.replace(/^\d+\.\s*/, '')}
           </h1>
           {course.progress === 100 || isEvalLesson ? (
@@ -336,7 +342,7 @@ export const CursoLeccionPage = () => {
       </div >
 
       {/* --- SIDEBAR DERECHO --- */}
-      <div className="w-full lg:col-span-1 flex flex-col gap-6">
+      <div className="w-full min-w-0 lg:col-span-1 flex flex-col gap-6">
 
         {/* Widget: Tu progreso actual dinámico */}
         <CourseProgress 
@@ -358,12 +364,12 @@ export const CursoLeccionPage = () => {
               if (isCompleted || isActive) {
                 return (
                   <div key={lesson.id} onClick={() => navigate(`/curso/${id}${lesson.path}`)} className={`flex items-center justify-between p-4 rounded-2xl cursor-pointer transition-shadow hover:shadow-md ${isActive ? 'bg-[#f3fff0] border border-[#5fbd44]' : 'bg-white border border-gray-100 hover:bg-slate-50'}`}>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 min-w-0">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-sm flex-shrink-0 ${isActive ? 'bg-white text-[#f6811e]' : 'bg-white text-[#10b981] border border-gray-100'}`}>
                         {isActive ? <Play className="w-4 h-4 fill-current ml-0.5" /> : <CheckCircle2 className="w-5 h-5" />}
                       </div>
-                      <div>
-                        <p className={`font-bold text-[15px] ${isActive ? 'text-gray-900' : 'text-gray-900'}`}>{lesson.id}. {lesson.title}</p>
+                      <div className="min-w-0">
+                        <p className={`font-bold text-[15px] break-words ${isActive ? 'text-gray-900' : 'text-gray-900'}`}>{lesson.id}. {lesson.title}</p>
                         <p className={`text-[13px] font-semibold mt-0.5 ${isActive ? 'text-[#f6811e]' : 'text-[#10b981]'}`}>{isActive ? 'En curso' : 'Completada'}</p>
                       </div>
                     </div>
@@ -385,8 +391,8 @@ export const CursoLeccionPage = () => {
                   <div className="w-10 h-10 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center flex-shrink-0 border border-gray-200">
                     <Lock className="w-4 h-4" />
                   </div>
-                  <div>
-                    <p className="font-bold text-gray-700 text-[15px]">{lesson.id}. {lesson.title}</p>
+                  <div className="min-w-0">
+                    <p className="font-bold text-gray-700 text-[15px] break-words">{lesson.id}. {lesson.title}</p>
                     <p className="text-[13px] text-gray-400 mt-0.5">Pendiente</p>
                   </div>
                 </div>

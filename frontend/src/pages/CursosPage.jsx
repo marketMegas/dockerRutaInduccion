@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Clock, BarChart, MoreVertical, Bot, Users, Megaphone, LineChart } from 'lucide-react';
+import { FileText, Clock, BarChart, MoreVertical, Bot, Users, Megaphone, LineChart, Search } from 'lucide-react';
 import { useCourseStore } from '../store/useCourseStore';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { useAuth } from '../context/AuthContext';
@@ -26,6 +26,7 @@ export const CursosPage = () => {
   const navigate = useNavigate();
   const { courses, isLoading, error, fetchCourses } = useCourseStore();
   const { currentUser } = useAuth();
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (currentUser) {
@@ -34,6 +35,16 @@ export const CursosPage = () => {
       fetchCourses();
     }
   }, [currentUser, fetchCourses]);
+
+  const filteredCourses = courses.filter((course) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      course.title?.toLowerCase().includes(query) ||
+      course.description?.toLowerCase().includes(query) ||
+      course.badge?.toLowerCase().includes(query) ||
+      course.level?.toLowerCase().includes(query)
+    );
+  });
 
   if (isLoading) return <LoadingSpinner text="Cargando tus cursos..." />;
 
@@ -53,6 +64,20 @@ export const CursosPage = () => {
       <div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Mis cursos</h1>
         <p className="text-gray-500">Aquí encontrarás todos los cursos en los que estás inscrito.</p>
+      </div>
+
+      {/* 2. Barra de búsqueda */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Buscar por nombre o descripción del curso..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-[#f4faf0] border border-transparent focus:bg-white focus:border-[#5fbd44] focus:ring-2 focus:ring-[#5fbd44]/10 rounded-full py-2.5 pl-11 pr-4 text-sm text-gray-700 outline-none transition-all placeholder:text-gray-400"
+          />
+        </div>
       </div>
 
       {/* 2. Filtros y Ordenamiento */}
@@ -75,7 +100,7 @@ export const CursosPage = () => {
 
       {/* 3. Lista de Tarjetas dinámicas */}
       <div className="flex flex-col gap-5 mt-2">
-        {courses.map((course) => {
+        {filteredCourses.map((course) => {
           const Icon = getIconComponent(course.iconType);
 
           return (
@@ -104,12 +129,12 @@ export const CursosPage = () => {
               </div>
 
               {/* Columna 2: Info del curso */}
-              <div className="flex-1 flex flex-col justify-center py-2">
+              <div className="flex-1 flex flex-col justify-center py-2 min-w-0">
                 <span className="inline-block bg-[#e8fde2] text-[#f6811e] px-2.5 py-1 rounded-md text-xs font-bold w-max mb-3">
                   {course.badge}
                 </span>
-                <h2 className="text-xl font-bold text-gray-900 mb-2">{highlightText(course.title)}</h2>
-                <p className="text-gray-500 text-sm mb-5 leading-relaxed pr-0 lg:pr-8">
+                <h2 className="text-xl font-bold text-gray-900 mb-2 break-words">{highlightText(course.title)}</h2>
+                <p className="text-gray-500 text-sm mb-5 leading-relaxed pr-0 lg:pr-8 break-words">
                   {highlightText(course.description)}
                 </p>
 
@@ -168,7 +193,18 @@ export const CursosPage = () => {
 
       <div className="text-center mt-6 mb-8">
         <p className="text-gray-500 text-[15px]">
-          ¿No encuentras tu curso? <a href="#" className="text-[#f6811e] font-bold hover:underline">Ver todos mis cursos</a>
+          {filteredCourses.length === 0
+            ? 'No se encontraron cursos que coincidan con tu búsqueda.'
+            : '¿No encuentras tu curso?'}{' '}
+          <button
+            type="button"
+            onClick={() => {
+              setSearchQuery('');
+            }}
+            className="text-[#f6811e] font-bold hover:underline focus:outline-none focus:ring-2 focus:ring-[#f6811e]/20 rounded-lg px-1"
+          >
+            Ver todos mis cursos
+          </button>
         </p>
       </div>
 

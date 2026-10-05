@@ -51,19 +51,8 @@ export const Header = ({ setIsSidebarOpen }) => {
       {/* Espaciador invisible para desktop */}
       <div className="hidden lg:flex flex-1"></div>
 
-      {/* 2. Centro: Buscador */}
-      <div className="flex-[2] hidden sm:flex justify-center items-center px-4">
-        <div className="w-full max-w-lg">
-          <div className="relative flex items-center group">
-            <Search className="w-4 h-4 text-gray-400 absolute left-4 group-focus-within:text-[#5fbd44] transition-colors" />
-            <input 
-              type="text" 
-              placeholder="Buscar contenido, cursos..." 
-              className="w-full bg-[#f4faf0] border border-transparent focus:bg-white focus:border-[#5fbd44] focus:ring-2 focus:ring-[#5fbd44]/10 rounded-full py-2.5 pl-11 pr-4 text-sm text-gray-700 outline-none transition-all placeholder:text-gray-400"
-            />
-          </div>
-        </div>
-      </div>
+      {/* Espaciador invisible para desktop */}
+      <div className="hidden lg:flex flex-[2]"></div>
 
       {/* 3. Lado Derecho: Perfil */}
       <div className="flex-1 flex items-center justify-end gap-4 sm:gap-6">

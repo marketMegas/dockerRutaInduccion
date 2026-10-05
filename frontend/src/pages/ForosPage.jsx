@@ -154,7 +154,7 @@ export const ForosPage = () => {
             Foro Comunitario
           </span>
           <h2 className="text-3xl font-black text-[#f6811e] tracking-tight mt-2">
-            Espacio de Consulta e Intercambio GASMAX
+            Espacio de Consulta e Intercambio Megas
           </h2>
           <p className="text-gray-500 font-medium text-sm mt-1">
             Resuelve dudas técnicas, comparte argumentos comerciales y colabora con otros expertos.
@@ -208,7 +208,7 @@ export const ForosPage = () => {
                   <h3 className="font-bold text-[#f6811e] text-[15px] line-clamp-2 leading-snug">
                     {thread.titulo}
                   </h3>
-                  <p className="text-gray-500 text-xs mt-2 line-clamp-2 font-medium">
+                  <p className="text-gray-500 text-xs mt-2 line-clamp-2 font-medium break-anywhere">
                     {thread.contenido}
                   </p>
                   <div className="flex items-center justify-between mt-4 text-gray-400 text-xs font-semibold">
@@ -239,7 +239,7 @@ export const ForosPage = () => {
         {/* PANEL DERECHO: detalle del tema */}
         <div className={`flex-1 flex flex-col bg-slate-50/30 ${activeThreadId === null ? 'hidden lg:flex' : 'flex'}`}>
           {activeThread ? (
-            <div className="h-full flex flex-col">
+            <div className="h-full flex flex-col min-w-0">
 
               {/* Volver (solo móvil) */}
               <div className="p-4 bg-white border-b border-gray-100 flex items-center lg:hidden">
@@ -253,7 +253,7 @@ export const ForosPage = () => {
               </div>
 
               {/* Cabecera del tema */}
-              <div className="p-6 md:p-8 bg-white border-b border-gray-100 shadow-sm flex-shrink-0">
+              <div className="p-6 md:p-8 bg-white border-b border-gray-100 shadow-sm overflow-y-auto overflow-x-hidden min-w-0 max-h-[50vh]">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-full bg-[#f6811e]/5 border border-[#f6811e]/10 flex items-center justify-center font-bold text-[#f6811e]">
                     {activeThread.autor.charAt(0).toUpperCase()}
@@ -268,13 +268,13 @@ export const ForosPage = () => {
                 <h1 className="text-2xl font-black text-[#f6811e] tracking-tight leading-snug">
                   {activeThread.titulo}
                 </h1>
-                <p className="text-gray-600 text-base mt-4 leading-relaxed font-medium whitespace-pre-line text-justify">
+                <p className="text-gray-600 text-base mt-4 leading-relaxed font-medium whitespace-pre-line break-anywhere text-justify">
                   {activeThread.contenido}
                 </p>
               </div>
 
               {/* Comentarios */}
-              <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
+              <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 md:p-8 space-y-6 min-w-0">
                 <h3 className="font-black text-[#f6811e] text-lg flex items-center gap-2 mb-2">
                   <MessageSquare className="w-5 h-5 text-[#5fbd44]" />
                   Respuestas ({comments.length})
@@ -303,7 +303,7 @@ export const ForosPage = () => {
                           {formatDate(comment.fecha_creacion)}
                         </span>
                       </div>
-                      <p className="text-gray-600 text-sm font-medium leading-relaxed whitespace-pre-line">
+                      <p className="text-gray-600 text-sm font-medium leading-relaxed whitespace-pre-line break-anywhere">
                         {comment.contenido}
                       </p>
                     </div>
@@ -375,7 +375,7 @@ export const ForosPage = () => {
                 <label className="block text-sm font-bold text-gray-700 mb-1.5">Título del tema</label>
                 <input
                   type="text"
-                  placeholder="Ej: Código de error P0191 en centralita Gasmax"
+                  placeholder="Ej: Nuevo tema de discusion sobre la induccion"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   required
