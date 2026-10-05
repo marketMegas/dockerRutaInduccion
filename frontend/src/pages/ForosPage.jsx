@@ -170,10 +170,10 @@ export const ForosPage = () => {
       </div>
 
       {/* SPLIT PANEL */}
-      <div className="flex-1 bg-white rounded-3xl border border-gray-100 shadow-sm flex flex-col lg:flex-row overflow-hidden min-h-[600px] h-[calc(100vh-230px)]">
+      <div className="flex-1 bg-white rounded-3xl border border-gray-100 shadow-sm flex flex-col lg:flex-row overflow-hidden min-h-[600px] h-[calc(100vh-230px)] min-w-0">
 
         {/* PANEL IZQUIERDO: lista de temas */}
-        <div className={`w-full lg:w-[400px] border-r border-gray-100 flex flex-col ${activeThreadId !== null ? 'hidden lg:flex' : 'flex'}`}>
+        <div className={`w-full lg:w-[400px] border-r border-gray-100 flex flex-col min-w-0 overflow-hidden ${activeThreadId !== null ? 'hidden lg:flex' : 'flex'}`}>
           {/* Buscador */}
           <div className="p-4 border-b border-gray-100">
             <div className="relative flex items-center group">
@@ -237,7 +237,7 @@ export const ForosPage = () => {
         </div>
 
         {/* PANEL DERECHO: detalle del tema */}
-        <div className={`flex-1 flex flex-col bg-slate-50/30 ${activeThreadId === null ? 'hidden lg:flex' : 'flex'}`}>
+        <div className={`flex-1 flex flex-col bg-slate-50/30 min-w-0 overflow-hidden ${activeThreadId === null ? 'hidden lg:flex' : 'flex'}`}>
           {activeThread ? (
             <div className="h-full flex flex-col min-w-0">
 
@@ -253,7 +253,7 @@ export const ForosPage = () => {
               </div>
 
               {/* Cabecera del tema */}
-              <div className="p-6 md:p-8 bg-white border-b border-gray-100 shadow-sm overflow-y-auto overflow-x-hidden min-w-0 max-h-[50vh]">
+              <div className="p-6 md:p-8 bg-white border-b border-gray-100 shadow-sm overflow-y-auto overflow-x-hidden min-w-0 max-h-[50vh] break-anywhere">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-full bg-[#f6811e]/5 border border-[#f6811e]/10 flex items-center justify-center font-bold text-[#f6811e]">
                     {activeThread.autor.charAt(0).toUpperCase()}

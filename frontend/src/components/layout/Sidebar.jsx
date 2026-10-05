@@ -33,7 +33,7 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
     { path: '/dashboard', icon: Route, text: 'Ruta de Inducción' },
     { path: '/cursos', icon: BookOpenCheck, text: 'Mis cursos' },
     { path: '/foros', icon: MessagesSquare, text: 'Foros' },
-    { path: '/recursos', icon: FolderKanban, text: 'Recursos' },
+
     { path: '/calificaciones', icon: ClipboardCheck, text: 'Calificaciones' }
   ];
 

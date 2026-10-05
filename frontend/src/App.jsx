@@ -10,7 +10,7 @@ import { CursoDetailPage } from './pages/CursoDetailPage';
 import { CursoLeccionPage } from './pages/CursoLeccionPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ForosPage } from './pages/ForosPage';
-import { RecursosPage } from './pages/RecursosPage';
+
 import { CalificacionesPage } from './pages/CalificacionesPage';
 
 function App() {
@@ -59,7 +59,7 @@ function App() {
           <Route element={<DashboardLayout />}>
 
             <Route path="/foros" element={<ForosPage />} />
-            <Route path="/recursos" element={<RecursosPage />} />
+
 
           </Route>
         </Route>

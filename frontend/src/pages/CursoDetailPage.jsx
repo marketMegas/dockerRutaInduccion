@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, CheckCircle2, Target, Zap, CircleDollarSign,
 import { useCourseStore } from '../store/useCourseStore';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { useAuth } from '../context/AuthContext';
-import { RecursosMultimedia } from '../components/RecursosMultimedia';
+
 import { CourseProgress } from '../components/CourseProgress';
 import { Course1Summary } from '../components/course/summaries/Course1Summary';
 import { Course2Summary } from '../components/course/summaries/Course2Summary';
@@ -58,7 +58,7 @@ export const CursoDetailPage = () => {
     );
   }
 
-  const tabs = ['Resumen', 'Recursos'];
+  const tabs = ['Resumen'];
 
   // Sin video configurado se muestra un placeholder. Antes caia a un ID de
   // YouTube fijo, asi que todo curso sin video embebia el mismo clip de prueba.
@@ -166,15 +166,6 @@ export const CursoDetailPage = () => {
               )}
             </div>
           )}
-
-          {/* TAB: RECURSOS */}
-          {activeTab === 1 && (
-            <div className="py-6">
-              <RecursosMultimedia courseId={course.id} />
-            </div>
-          )}
-
-
 
         </div>
 

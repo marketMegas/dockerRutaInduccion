@@ -5,7 +5,7 @@ import { useCourseStore } from '../store/useCourseStore';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { useAuth } from '../context/AuthContext';
 import { EvaluacionCurso } from '../components/EvaluacionCurso';
-import { RecursosMultimedia } from '../components/RecursosMultimedia';
+
 import { CourseProgress } from '../components/CourseProgress';
 import { Course1Leccion2Content } from '../components/course/lessons/Course1Leccion2Content';
 import { Course1Leccion3Content } from '../components/course/lessons/Course1Leccion3Content';
@@ -116,7 +116,7 @@ export const CursoLeccionPage = () => {
   const prevLesson = parsedLeccionId > 1 ? course.lessons?.find(l => l.id === parsedLeccionId - 1) : null;
   const backPath = prevLesson ? (prevLesson.path ? `/curso/${id}${prevLesson.path}` : `/curso/${id}`) : `/curso/${id}`;
 
-  const tabs = ['Resumen', 'Recursos', 'Evaluación'];
+  const tabs = ['Resumen', 'Evaluación'];
 
   // Function to render the correct content component
   const renderLessonContent = () => {
@@ -317,11 +317,7 @@ export const CursoLeccionPage = () => {
           </div>
         )}
 
-        {activeTab === 1 && (
-          <div className="py-6 w-full">
-            <RecursosMultimedia courseId={course?.id} />
-          </div>
-        )}
+
 
         {activeTab === 2 && (
           <div className="py-6">
