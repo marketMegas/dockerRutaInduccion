@@ -22,6 +22,12 @@
 #  no aplica.
 # ============================================================
 
+# Proyecto fijo: reutiliza la red inductor-megas_default que ya existe
+# en el VPS (ahí viven los contenedores viejos). Si el compose creara
+# una red nueva con su propio nombre rompe el iptables de docker y
+# ademas dejaría aislados a frontend y backend entre sí.
+name: induccion-megas
+
 services:
   backend:
     build:
