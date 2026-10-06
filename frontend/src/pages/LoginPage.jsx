@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import logoMegas from '../../../nuevoLOGOMegas.png';
+import logoMegas from '../../nuevoLOGOMegas.png';
 import { Eye, EyeOff, LogIn, AlertCircle, Loader2, CheckCircle } from 'lucide-react';
 
 // `sendPasswordResetEmail` no tiene timeout propio: si la red se cuelga (una
