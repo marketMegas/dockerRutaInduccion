@@ -30,7 +30,7 @@ services:
     # Imagen etiquetada por commit: el rollback es volver a subir con
     # APP_VERSION=<commit anterior>.
     image: induccion-megas-backend:${APP_VERSION:-latest}
-    container_name: induccion-megas-backend
+    container_name: ruta-induccion-backend
     restart: unless-stopped
     # migrate va en el arranque: en local las migraciones se corrieron a
     # mano, pero en el VPS un deploy sin migrate deja el codigo nuevo
@@ -40,11 +40,12 @@ services:
       sh -c "python manage.py migrate --noinput &&
              python manage.py collectstatic --noinput &&
              gunicorn --bind 0.0.0.0:8000 core_project.wsgi:application --timeout 120"
-    # expose y NO ports: el backend solo lo alcanza el contenedor frontend
-    # por la red interna de compose (http://backend:8000). Nunca se
-    # publica al host ni a internet.
-    expose:
-      - "8000"
+    # PUBLICADO SOLO EN LOOPBACK (127.0.0.1:8001): ahi es donde LiteSpeed
+    # del host reenvia /api/, /admin/ y /static/. Nunca abrir 8001 en el
+    # firewall. El contenedor frontend lo alcanza por la red interna de
+    # compose (http://backend:8000), no por el puerto publicado.
+    ports:
+      - "127.0.0.1:8001:8000"
     volumes:
       # La base y los certificados viven FUERA del contenedor y del repo:
       # sobreviven a rebuilds y son lo unico que hay que backupear.
@@ -84,13 +85,9 @@ services:
     container_name: induccion-megas-frontend
     restart: unless-stopped
     ports:
-      # Loopback: a este puerto entra unicamente el nginx DEL HOST, que es
-      # quien termina el TLS. Nunca abrir 5137 en el firewall.
-      - "127.0.0.1:5137:80"
-    volumes:
-      # Los certificados PDF los sirve el nginx de este contenedor con
-      # alias (ver nginx.conf raiz, location /media/), no Django.
-      - /root/induccion-megas/media:/usr/share/nginx/html/media:ro
+      # Loopback: a este puerto entra unicamente el nginx/LiteSpeed DEL HOST,
+      # que es quien termina el TLS. Nunca abrir 5138 en el firewall.
+      - "127.0.0.1:5138:80"
     depends_on:
       - backend
     logging:
