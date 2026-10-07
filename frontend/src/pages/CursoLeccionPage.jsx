@@ -138,6 +138,17 @@ export const CursoLeccionPage = () => {
       if (parsedLeccionId === 5) return <Course3Leccion5Content />;
     }
 
+    if (currentLesson.content_text && currentLesson.content_text.trim()) {
+      return (
+        <div className="py-6 flex flex-col gap-8 w-full">
+          <div className="bg-white rounded-[20px] border border-gray-100 p-6 sm:p-8 shadow-sm">
+            <h2 className="text-sm font-black text-[#f6811e] uppercase tracking-widest mb-4">Contenido</h2>
+            <div className="text-gray-600 leading-relaxed text-base whitespace-pre-line">{currentLesson.content_text}</div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="py-6 flex flex-col gap-8 w-full">
         <div className="bg-white rounded-[20px] border border-gray-100 p-6 sm:p-8 shadow-sm text-center">
@@ -287,6 +298,15 @@ export const CursoLeccionPage = () => {
                 <p className="text-lg font-medium">Video en desarrollo</p>
               </div>
             )}
+          </div>
+        )}
+
+        {/* 3b. Contenido escrito de la lección: el campo "Contenido escrito"
+            que se carga desde el admin de Django (Lesson.content_text) */}
+        {currentLesson.content_text && currentLesson.content_text.trim() && (
+          <div className="bg-white rounded-[20px] border border-gray-100 p-6 sm:p-8 shadow-sm">
+            <h2 className="text-sm font-black text-[#f6811e] uppercase tracking-widest mb-4">Contenido</h2>
+            <div className="text-gray-600 leading-relaxed text-base whitespace-pre-line">{currentLesson.content_text}</div>
           </div>
         )}
 

@@ -345,7 +345,7 @@ export const ForosPage = () => {
               <div className="w-20 h-20 rounded-full bg-[#5fbd44]/5 flex items-center justify-center mb-6">
                 <MessageSquare className="w-10 h-10 text-[#5fbd44]" />
               </div>
-              <h3 className="text-2xl font-black text-[#f6811e]">Foro de Consulta G-MAX</h3>
+              <h3 className="text-2xl font-black text-[#f6811e]">Foro de Consulta Megas</h3>
               <p className="text-gray-500 font-medium max-w-sm mt-2 leading-relaxed">
                 Selecciona un tema de la lista o crea uno nuevo para empezar la conversación.
               </p>

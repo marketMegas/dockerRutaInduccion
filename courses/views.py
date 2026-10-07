@@ -56,6 +56,7 @@ def _serializar_curso(course):
                 'duration': leccion.duration or '—',
                 'path': '' if orden == 1 else f'/leccion/{orden}',
                 'videoId': _youtube_id(leccion.video_url),
+                'content_text': leccion.content_text,
             })
 
     total = len(lecciones)

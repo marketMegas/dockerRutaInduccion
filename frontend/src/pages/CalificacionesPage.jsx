@@ -1,13 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   GraduationCap, Trophy, BookOpen, CheckCircle2, XCircle,
   Clock, BarChart3, Star, Award, RefreshCcw, ChevronRight
 } from 'lucide-react';
-import { db } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useCourseStore } from '../store/useCourseStore';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { api, apiFetch } from '../services/api';
+import { apiFetch } from '../services/api';
 
 // La lista de cursos viene del store (que la pide a Django), no de una lista
 // fija en el codigo: antes COURSES_META tenia un solo curso de prueba
@@ -60,23 +58,6 @@ export const CalificacionesPage = () => {
   const { courses, fetchCourses } = useCourseStore();
   const [grades, setGrades] = useState({});   // { courseId: gradeDoc }
   const [loading, setLoading] = useState(true);
-  const [descargando, setDescargando] = useState(null);
-  const [errorDescarga, setErrorDescarga] = useState('');
-
-  const descargar = async (grade) => {
-    setDescargando(grade.courseId);
-    setErrorDescarga('');
-    try {
-      await api.descargarCertificado(
-        grade.certificado.url,
-        `Certificado_${grade.courseName || 'curso'}.pdf`
-      );
-    } catch (err) {
-      setErrorDescarga(err.message);
-    } finally {
-      setDescargando(null);
-    }
-  };
 
   useEffect(() => {
     fetchCourses(currentUser?.uid);
@@ -100,56 +81,37 @@ export const CalificacionesPage = () => {
     if (!currentUser) return;
 
     // Fetch desde API de Django
+    let activo = true;
     const fetchDjangoGrades = async () => {
       try {
         const res = await apiFetch(`/api/cursos/calificaciones/${currentUser.uid}/`);
-        if (res.ok) {
-          const list = await res.json();
-          const result = {};
-          list.forEach((item) => {
-            result[item.course_id] = {
-              courseId: item.course_id,
-              courseName: item.course_name,
-              score: item.score,
-              totalQuestions: item.total_questions,
-              percentage: item.percentage,
-              passed: item.passed,
-              completedAt: item.fecha_creacion,
-              // El certificado (con su token y URL) solo lo conoce Django.
-              certificate: item.certificado,
-            };
-          });
-          setGrades((prev) => ({ ...result, ...prev }));
-          setLoading(false);
+        if (!res.ok) {
+          throw new Error(`La API de calificaciones respondio ${res.status}`);
         }
+
+        const list = await res.json();
+        const result = {};
+        list.forEach((item) => {
+          result[item.course_id] = {
+            courseId: item.course_id,
+            courseName: item.course_name,
+            score: item.score,
+            totalQuestions: item.total_questions,
+            percentage: item.percentage,
+            passed: item.passed,
+            completedAt: item.fecha_creacion,
+          };
+        });
+        if (activo) setGrades(result);
       } catch (err) {
-        console.error('Error fetching grades from Django API:', err);
+        if (activo) console.error('Error fetching grades from Django API:', err);
+      } finally {
+        if (activo) setLoading(false);
       }
     };
 
     fetchDjangoGrades();
-
-    const q = query(
-      collection(db, 'calificaciones'),
-      where('userId', '==', currentUser.uid)
-    );
-
-    // Real-time listener — updates instantly when a quiz is finished
-    const unsubscribe = onSnapshot(q, (snap) => {
-      const result = {};
-      snap.forEach((d) => {
-        const data = d.data();
-        result[data.courseId] = data;
-      });
-      setGrades((prev) => ({ ...prev, ...result }));
-      setLoading(false);
-    }, (err) => {
-      console.error('Error fetching grades from Firestore:', err);
-      setLoading(false);
-    });
-
-    // Cleanup listener when component unmounts
-    return () => unsubscribe();
+    return () => { activo = false; };
   }, [currentUser]);
 
 
@@ -167,7 +129,7 @@ export const CalificacionesPage = () => {
     return d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
-  if (loading || !courses.length) {
+  if ((loading && currentUser) || !courses.length) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <div className="w-14 h-14 rounded-full border-4 border-[#f6811e] border-t-transparent animate-spin" />
@@ -336,34 +298,6 @@ export const CalificacionesPage = () => {
                   </div>
                 </div>
 
-                {/* El certificado se descarga del servidor con su token. Solo
-                    aparece si la fila lo tiene de verdad: antes el botón se
-                    decidía por `passed` y daba un 404 si el PDF nunca se
-                    emitió. */}
-                {grade?.passed && grade.certificate?.url && (
-                  <div className="px-6 pb-5 flex flex-col sm:flex-row sm:items-center gap-3">
-                    <button
-                      onClick={() => descargar(grade)}
-                      disabled={descargando === course.id}
-                      className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#5fbd44] text-white font-black text-sm hover:bg-[#4da43a] transition-colors disabled:opacity-60 disabled:cursor-wait"
-                    >
-                      {descargando === course.id
-                        ? <RefreshCcw className="w-4 h-4 animate-spin" />
-                        : <Award className="w-4 h-4" />}
-                      {descargando === course.id ? 'Descargando...' : 'Descargar Certificado'}
-                    </button>
-                    {grade.certificate.notificado ? (
-                      <span className="text-xs text-gray-400 font-medium">
-                        También te lo enviamos a tu correo.
-                      </span>
-                    ) : (
-                      <span className="text-xs text-amber-600 font-semibold">
-                        Guardado, pero el aviso por correo no salió. Podés pedir que lo reenvíen.
-                      </span>
-                    )}
-                  </div>
-                )}
-
                 {/* Progress bar at bottom */}
                 <div className="h-1.5 bg-gray-100">
                   <div
@@ -403,12 +337,6 @@ export const CalificacionesPage = () => {
         </div>
       </div>
 
-      {errorDescarga && (
-        <p className="text-sm font-bold text-red-500 bg-red-50 border border-red-100 px-4 py-3 rounded-xl">
-          {errorDescarga}
-        </p>
-      )}
-
       {/* ── EMPTY STATE ── */}
       {attempted === 0 && (
         <div className="bg-white rounded-3xl border-2 border-dashed border-gray-200 p-12 text-center">
@@ -418,8 +346,7 @@ export const CalificacionesPage = () => {
           <h3 className="text-xl font-black text-[#f6811e] mb-2">Aún no tienes evaluaciones</h3>
           <p className="text-gray-400 font-medium mb-6 max-w-sm mx-auto">
             Completa la evaluación del final de cada curso para que tus
-            calificaciones aparezcan aquí. Si apruebas, descargas tu
-            certificado desde la misma tarjeta.
+            calificaciones aparezcan aquí.
           </p>
           <a
             href="/cursos"
