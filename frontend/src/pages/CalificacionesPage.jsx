@@ -148,19 +148,19 @@ export const CalificacionesPage = () => {
         <div className="absolute -bottom-6 left-20 w-32 h-32 bg-white/5 rounded-full blur-2xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-6">
-          <div className="w-16 h-16 bg-white/10 backdrop-blur rounded-2xl flex items-center justify-center flex-shrink-0 border border-white/20">
-            <GraduationCap className="w-8 h-8 text-[#f6811e]" />
+          <div className="w-16 h-16 bg-white/10 backdrop-blur rounded-2xl flex items-center justify-center flex-shrink-0 border border-green-400">
+            <GraduationCap className="w-8 h-8 text-green-400" />
           </div>
           <div className="flex-1">
             <h1 className="text-3xl font-black tracking-tight">Mis Calificaciones</h1>
             <p className="text-green-200 font-medium mt-1">
-              Resultados de tus evaluaciones en Universidad G‑MAX
+              Resultados de tus evaluaciones en Ruta de inducción Megas
             </p>
           </div>
 
           {avgPercentage !== null && (
-            <div className="bg-white/10 backdrop-blur border border-white/20 rounded-2xl px-6 py-4 text-center flex-shrink-0">
-              <p className="text-green-200 text-xs font-bold uppercase tracking-widest mb-1">Promedio general</p>
+            <div className="bg-white/10 backdrop-blur border border-green-400 rounded-2xl px-6 py-4 text-center flex-shrink-0">
+              <p className="text-white text-xs font-bold uppercase tracking-widest mb-1">Promedio general</p>
               <p className={`text-4xl font-black ${avgPercentage >= 90 ? 'text-green-400' : avgPercentage >= 70 ? 'text-amber-400' : 'text-red-400'}`}>
                 {avgPercentage}%
               </p>

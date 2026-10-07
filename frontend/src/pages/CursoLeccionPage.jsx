@@ -112,11 +112,24 @@ export const CursoLeccionPage = () => {
     videoId: ''
   };
 
+  // El contenido escrito de la lección se muestra en su tarjeta, debajo del
+  // video. Resumen solo existe como fallback para las lecciones que no tienen
+  // ese texto: si abajo ya hay contenido, la pestaña queda vacía y no se
+  // muestra.
+  const tieneContenido = Boolean(currentLesson.content_text && currentLesson.content_text.trim());
+
   // Find previous lesson for the "Volver" button
   const prevLesson = parsedLeccionId > 1 ? course.lessons?.find(l => l.id === parsedLeccionId - 1) : null;
   const backPath = prevLesson ? (prevLesson.path ? `/curso/${id}${prevLesson.path}` : `/curso/${id}`) : `/curso/${id}`;
 
-  const tabs = ['Resumen', 'Evaluación'];
+  // Resumen solo aparece si la lección no tiene contenido propio (ahí es donde
+  // se muestra la info del curso); Evaluación, solo en la última lección.
+  const tabs = ['Resumen', 'Evaluación'].filter((tab) =>
+    tab === 'Evaluación' ? isEvalLesson : !tieneContenido
+  );
+  // El contenido del quiz vive en activeTab === 2, no en el índice del array:
+  // los clicks mapean a esos valores y no a la posición de la pestaña.
+  const tabActiva = (tab) => (tab === 'Evaluación' ? 2 : 0);
 
   // Function to render the correct content component
   const renderLessonContent = () => {
@@ -138,12 +151,19 @@ export const CursoLeccionPage = () => {
       if (parsedLeccionId === 5) return <Course3Leccion5Content />;
     }
 
-    if (currentLesson.content_text && currentLesson.content_text.trim()) {
+    // Resumen solo se pinta para lecciones SIN contenido propio: el texto de la
+    // lección vive en su tarjeta de debajo del video, y acá se muestra la info
+    // del curso en el lugar que le correspondería.
+    if (course.description) {
       return (
         <div className="py-6 flex flex-col gap-8 w-full">
           <div className="bg-white rounded-[20px] border border-gray-100 p-6 sm:p-8 shadow-sm">
-            <h2 className="text-sm font-black text-[#f6811e] uppercase tracking-widest mb-4">Contenido</h2>
-            <div className="text-gray-600 leading-relaxed text-base whitespace-pre-line">{currentLesson.content_text}</div>
+            <h2 className="text-2xl font-black text-gray-900 tracking-tight break-words">
+              Sobre este curso
+            </h2>
+            <p className="mt-4 text-gray-700 leading-relaxed whitespace-pre-line break-words">
+              {course.description}
+            </p>
           </div>
         </div>
       );
@@ -310,28 +330,30 @@ export const CursoLeccionPage = () => {
           </div>
         )}
 
-        {/* 4. Navegación de pestañas */}
-        <div className="border-b border-gray-100 mt-2">
-          <ul className="flex gap-8 overflow-x-auto hide-scrollbar">
-            {tabs.map((tab, i) => {
-              const isEvalTab = tab === 'Evaluación';
-              if (isEvalTab && !isEvalLesson) return null;
-              return (
-                <li key={i}>
-                  <button
-                    onClick={() => setActiveTab(i)}
-                    className={`pb-4 text-[15px] font-bold border-b-[3px] transition-colors ${activeTab === i ? 'border-[#f6811e] text-[#f6811e]' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
-                  >
-                    {tab}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+        {/* 4. Navegación de pestañas. Si no queda ninguna visible (lección con
+            contenido, no evaluativa) no se pinta la barra entera. */}
+        {tabs.length > 0 && (
+          <div className="border-b border-gray-100 mt-2">
+            <ul className="flex gap-8 overflow-x-auto hide-scrollbar">
+              {tabs.map((tab) => {
+                const activa = activeTab === tabActiva(tab);
+                return (
+                  <li key={tab}>
+                    <button
+                      onClick={() => setActiveTab(tabActiva(tab))}
+                      className={`pb-4 text-[15px] font-bold border-b-[3px] transition-colors ${activa ? 'border-[#f6811e] text-[#f6811e]' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+                    >
+                      {tab}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
 
         {/* 5. Contenido de pestañas */}
-        {activeTab === 0 && (
+        {activeTab === 0 && tabs.includes('Resumen') && (
           <div className="flex flex-col gap-8">
             {renderLessonContent()}
           </div>

@@ -157,7 +157,7 @@ export const ForosPage = () => {
             Espacio de Consulta e Intercambio Megas
           </h2>
           <p className="text-gray-500 font-medium text-sm mt-1">
-            Resuelve dudas técnicas, comparte argumentos comerciales y colabora con otros expertos.
+            Resuelve dudas comparte argumentos y colabora con otros compañeros.
           </p>
         </div>
         <button
