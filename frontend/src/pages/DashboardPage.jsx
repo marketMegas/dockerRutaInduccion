@@ -1,4 +1,5 @@
 import heroImage from '../../nuevoLOGOMegas.png';
+import rutaIntexto from '../../rutaintexto.jpg';
 
 // La Ruta de Inducción quedó reducida a su título. Antes esta página traía
 // ~1000 líneas de contenido fijo en el código (objetivo, descripción del
@@ -32,6 +33,17 @@ export const DashboardPage = () => {
             src={heroImage}
             alt="Bienvenidos a la Ruta de Inducción"
             className="mt-8 w-full max-w-4xl rounded-2xl object-cover"
+          />
+          <img
+            src={rutaIntexto}
+            alt="Ruta de Inducción"
+            className="mt-0 w-[130%] max-w-[3000px] relative left-1/2 -translate-x-1/2 object-cover"
+            style={{
+              maskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 70%, transparent 100%), linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)',
+              maskComposite: 'intersect',
+              WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 70%, transparent 100%), linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)',
+              WebkitMaskComposite: 'source-in',
+            }}
           />
         </div>
 

@@ -14,7 +14,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
 from usuarios.permisos import requiere_estudiante
-from .models import UserProgress, Calificacion, Certificado, Course, Module, Lesson
+from .models import UserProgress, Calificacion, Certificado, Course, Module, Lesson, Recurso
 
 CARPETA_CERTIFICADOS = 'Certificados_Emitidos'
 
@@ -75,13 +75,20 @@ def _serializar_curso(course):
         'progress': 0,
         'completedLessons': 0,
         'lessons': lecciones,
+        'recursos': [{
+            'id': recurso.id,
+            'title': recurso.title,
+            'tipo': recurso.tipo,
+            'url': recurso.archivo.url,
+            'description': recurso.description,
+        } for recurso in course.recursos.all().order_by('order')],
     }
 
 
 @requiere_estudiante
 @require_http_methods(["GET"])
 def lista_cursos(request):
-    cursos = Course.objects.prefetch_related('modules__lessons').order_by('id')
+    cursos = Course.objects.prefetch_related('modules__lessons', 'recursos').order_by('id')
     return JsonResponse([_serializar_curso(c) for c in cursos], safe=False)
 
 
@@ -90,7 +97,7 @@ def lista_cursos(request):
 def detalle_curso(request, course_id):
     from django.shortcuts import get_object_or_404
     course = get_object_or_404(
-        Course.objects.prefetch_related('modules__lessons'), pk=course_id
+        Course.objects.prefetch_related('modules__lessons', 'recursos'), pk=course_id
     )
     return JsonResponse(_serializar_curso(course))
 

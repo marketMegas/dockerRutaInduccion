@@ -61,6 +61,27 @@ class Lesson(models.Model):
     def __str__(self):
         return f"{self.module.title} - {self.title}"
 
+class Recurso(models.Model):
+    TIPO_CHOICES = [
+        ('PDF', 'PDF'),
+        ('Imagen', 'Imagen'),
+    ]
+
+    course = models.ForeignKey(Course, related_name='recursos', on_delete=models.CASCADE, verbose_name="Curso")
+    title = models.CharField(max_length=255, verbose_name="Título del recurso")
+    tipo = models.CharField(max_length=10, choices=TIPO_CHOICES, verbose_name="Tipo")
+    archivo = models.FileField(upload_to='recursos/', verbose_name="Archivo")
+    description = models.TextField(blank=True, default='', verbose_name="Descripción")
+    order = models.PositiveIntegerField(default=0, verbose_name="Orden")
+
+    class Meta:
+        ordering = ['order']
+        verbose_name = "Recurso"
+        verbose_name_plural = "Recursos"
+
+    def __str__(self):
+        return f"{self.course.title} - {self.title} ({self.tipo})"
+
 class UserProgress(models.Model):
     # El uid de Firebase de la persona. No es un campo libre: lo escribe
     # `@requiere_estudiante` con el `sub` del ID token verificado, asi que si

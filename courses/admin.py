@@ -3,7 +3,7 @@ from django.core.files.storage import default_storage
 from django.db.models import Count, OuterRef, Subquery
 from django.http import HttpResponseRedirect
 from django.urls import reverse
-from .models import Course, Module, Lesson, UserProgress, Calificacion, Certificado
+from .models import Course, Module, Lesson, UserProgress, Calificacion, Certificado, Recurso
 from .views import _adjunto_certificado, _cuerpo_certificado, _enviar
 from evaluaciones.models import Evaluacion
 
@@ -32,6 +32,12 @@ class EvaluacionInline(admin.TabularInline):
     verbose_name = "Evaluación"
     verbose_name_plural = "Evaluaciones"
 
+class RecursoInline(admin.TabularInline):
+    model = Recurso
+    extra = 1
+    fields = ('title', 'tipo', 'archivo', 'description', 'order')
+    ordering = ('order',)
+
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
     list_display = ('id', 'title', 'badge', 'level', 'icon_type', 'duration', 'created_at')
@@ -41,7 +47,7 @@ class CourseAdmin(admin.ModelAdmin):
         ('Contenido', {'fields': ('title', 'description', 'cover_image')}),
         ('Presentación', {'fields': ('icon_type', 'accent_color', 'badge', 'level', 'duration')}),
     )
-    inlines = [ModuleInline, EvaluacionInline]
+    inlines = [ModuleInline, RecursoInline, EvaluacionInline]
 
 @admin.register(Module)
 class ModuleAdmin(admin.ModelAdmin):
@@ -55,6 +61,12 @@ class LessonAdmin(admin.ModelAdmin):
     list_display = ('id', 'title', 'module', 'order')
     list_filter = ('module__course', 'module')
     search_fields = ('title',)
+
+@admin.register(Recurso)
+class RecursoAdmin(admin.ModelAdmin):
+    list_display = ('id', 'title', 'tipo', 'course', 'order')
+    list_filter = ('tipo', 'course')
+    search_fields = ('title', 'course__title')
 
 @admin.register(UserProgress)
 class UserProgressAdmin(admin.ModelAdmin):

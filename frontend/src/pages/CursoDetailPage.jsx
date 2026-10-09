@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, CheckCircle2, Target, Zap, CircleDollarSign, RefreshCw, Fuel, Diamond, Play, Lock, Volume2, Maximize, Users, User, Briefcase, Cog, Globe, Truck, Building2, MapPin, Megaphone, Leaf, Handshake, Award, Store, Wrench, Building, Headset, Package, CreditCard, Star, BarChart, Car, Gift, ClipboardList, HelpCircle, FileText } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle2, Target, Zap, CircleDollarSign, RefreshCw, Fuel, Diamond, Play, Lock, Volume2, Maximize, Users, User, Briefcase, Cog, Globe, Truck, Building2, MapPin, Megaphone, Leaf, Handshake, Award, Store, Wrench, Building, Headset, Package, CreditCard, Star, BarChart, Car, Gift, ClipboardList, HelpCircle, FileText, Image as ImageIcon, X, Download } from 'lucide-react';
 import { useCourseStore } from '../store/useCourseStore';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { useAuth } from '../context/AuthContext';
@@ -26,6 +26,7 @@ export const CursoDetailPage = () => {
   const { currentCourse: course, isLoading, error, fetchCourseById, clearCurrentCourse, updateCourseProgress } = useCourseStore();
   const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
+  const [recursoModal, setRecursoModal] = useState(null);
 
   useEffect(() => {
     if (id) {
@@ -58,7 +59,7 @@ export const CursoDetailPage = () => {
     );
   }
 
-  const tabs = ['Resumen'];
+  const tabs = course.recursos && course.recursos.length > 0 ? ['Resumen', 'Recursos'] : ['Resumen'];
 
   // Sin video configurado se muestra un placeholder. Antes caia a un ID de
   // YouTube fijo, asi que todo curso sin video embebia el mismo clip de prueba.
@@ -167,6 +168,57 @@ export const CursoDetailPage = () => {
             </div>
           )}
 
+          {/* TAB: RECURSOS */}
+          {activeTab === 1 && (
+            <div className="flex flex-col gap-6">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {course.recursos.map((recurso) => (
+                  recurso.tipo === 'PDF' ? (
+                    <button
+                      key={recurso.id}
+                      onClick={() => window.open(recurso.url, '_blank', 'noopener,noreferrer')}
+                      className="group flex flex-col items-start gap-3 bg-white rounded-[20px] border border-gray-100 p-5 shadow-sm hover:shadow-md transition-all text-left cursor-pointer"
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-red-50 text-red-500 flex items-center justify-center">
+                        <FileText className="w-6 h-6" />
+                      </div>
+                      <div className="min-w-0 w-full">
+                        <p className="font-bold text-gray-900 break-words">{recurso.title}</p>
+                        {recurso.description && (
+                          <p className="text-sm text-gray-500 mt-1 break-words">{recurso.description}</p>
+                        )}
+                      </div>
+                      <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-[#f6811e] group-hover:underline">
+                        <Download className="w-4 h-4" />
+                        Abrir PDF
+                      </span>
+                    </button>
+                  ) : (
+                    <button
+                      key={recurso.id}
+                      onClick={() => setRecursoModal(recurso)}
+                      className="group overflow-hidden rounded-[20px] border border-gray-100 shadow-sm hover:shadow-md transition-all bg-white cursor-pointer text-left"
+                    >
+                      <div className="aspect-video w-full overflow-hidden bg-gray-50">
+                        <img
+                          src={recurso.url}
+                          alt={recurso.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        />
+                      </div>
+                      <div className="p-4">
+                        <p className="font-bold text-gray-900 break-words">{recurso.title}</p>
+                        {recurso.description && (
+                          <p className="text-sm text-gray-500 mt-1 break-words">{recurso.description}</p>
+                        )}
+                      </div>
+                    </button>
+                  )
+                ))}
+              </div>
+            </div>
+          )}
+
         </div>
 
         {/* BOTÓN SIGUIENTE LECCIÓN */}
@@ -248,6 +300,36 @@ export const CursoDetailPage = () => {
         </div>
 
       </div>
+
+      {/* MODAL: VER IMAGEN COMPLETA */}
+      {recursoModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 sm:p-8"
+          onClick={() => setRecursoModal(null)}
+        >
+          <div
+            className="relative max-w-5xl w-full bg-white rounded-[20px] overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <h3 className="font-bold text-gray-900 break-words pr-4">{recursoModal.title}</h3>
+              <button
+                onClick={() => setRecursoModal(null)}
+                className="text-gray-400 hover:text-gray-600 flex-shrink-0"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="max-h-[80vh] overflow-auto">
+              <img
+                src={recursoModal.url}
+                alt={recursoModal.title}
+                className="w-full h-auto"
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
