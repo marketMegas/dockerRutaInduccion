@@ -94,6 +94,14 @@ services:
       # Loopback: a este puerto entra unicamente el nginx/LiteSpeed DEL HOST,
       # que es quien termina el TLS. Nunca abrir 5138 en el firewall.
       - "127.0.0.1:5138:80"
+    # Los archivos subidos (recursos PDF/imagen de los cursos) los guarda el
+    # backend en /root/induccion-megas/media; este mismo volumen se monta en
+    # el nginx del contenedor en /usr/share/nginx/html/media para que el
+    # `location /media/` de nginx.conf los sirva a los estudiantes sin tocar
+    # a Django. Sin el mount, el frontend compilado no ve las subidas y las
+    # URLs /media/... dan 404.
+    volumes:
+      - /root/induccion-megas/media:/usr/share/nginx/html/media:ro
     depends_on:
       - backend
     logging:
