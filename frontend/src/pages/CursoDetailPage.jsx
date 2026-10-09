@@ -63,9 +63,11 @@ export const CursoDetailPage = () => {
 
   // Sin video configurado se muestra un placeholder. Antes caia a un ID de
   // YouTube fijo, asi que todo curso sin video embebia el mismo clip de prueba.
-  const lesson1VideoId = course.lessons && course.lessons.length > 0
-    ? course.lessons[0].videoId
+  const lesson1 = course.lessons && course.lessons.length > 0 ? course.lessons[0] : null;
+  const lesson1VideoId = lesson1
+    ? lesson1.videoId
     : (course.videoId || '');
+  const lesson1EsImagen = lesson1 && lesson1.mediaType === 'imagen';
 
   const ResumenDelCurso = CURSO_CON_RESUMEN[course.id];
 
@@ -98,7 +100,23 @@ export const CursoDetailPage = () => {
           1. Introducción: {course.title}
         </h1>
 
-        {/* 3. Reproductor de Video (YouTube Real) */}
+        {/* 3. Reproductor de Video (o imagen, si la URL del admin es una imagen) */}
+        {lesson1EsImagen ? (
+          <div className="relative aspect-video w-full bg-black rounded-[24px] overflow-hidden shadow-2xl border-[6px] border-white/10">
+            {lesson1VideoId ? (
+              <img
+                src={lesson1VideoId}
+                alt={course.title}
+                className="absolute inset-0 w-full h-full object-contain"
+              />
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center px-6">
+                <Play className="w-14 h-14 text-[#f6811e]" />
+                <p className="text-white font-bold text-lg">Este curso aún no tiene imagen</p>
+              </div>
+            )}
+          </div>
+        ) : (
         <div className="relative aspect-video w-full bg-black rounded-[24px] overflow-hidden shadow-2xl border-[6px] border-white/10">
           {lesson1VideoId ? (
             <iframe
@@ -119,6 +137,7 @@ export const CursoDetailPage = () => {
             </div>
           )}
         </div>
+        )}
 
         {/* 4. Navegación de pestañas */}
         <div className="border-b border-gray-100 mt-2">

@@ -1,5 +1,8 @@
 import heroImage from '../../nuevoLOGOMegas.png';
-import rutaIntexto from '../../rutaintexto.jpg';
+import portada2 from '../../portada2.jpg';
+import portada3 from '../../portada3.jpeg';
+import portada4 from '../../portada4.jpg';
+import portada5 from '../../portada5.jpg';
 
 // La Ruta de Inducción quedó reducida a su título. Antes esta página traía
 // ~1000 líneas de contenido fijo en el código (objetivo, descripción del
@@ -34,17 +37,34 @@ export const DashboardPage = () => {
             alt="Bienvenidos a la Ruta de Inducción"
             className="mt-8 w-full max-w-4xl rounded-2xl object-cover"
           />
-          <img
-            src={rutaIntexto}
-            alt="Ruta de Inducción"
-            className="mt-0 w-[130%] max-w-[3000px] relative left-1/2 -translate-x-1/2 object-cover"
-            style={{
-              maskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 70%, transparent 100%), linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)',
-              maskComposite: 'intersect',
-              WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 70%, transparent 100%), linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)',
-              WebkitMaskComposite: 'source-in',
-            }}
-          />
+          <div className="relative w-full">
+            <img
+              src={portada2}
+              alt="Portada de la Ruta de Inducción"
+              className="mt-0 mx-auto w-[118%] max-w-none h-auto object-contain relative left-1/2 -translate-x-1/2"
+            />
+          </div>
+          <div className="relative w-full">
+            <img
+              src={portada3}
+              alt="Portada de la Ruta de Inducción"
+              className="mt-0 mx-auto w-[118%] max-w-none h-auto object-contain relative left-1/2 -translate-x-1/2"
+            />
+          </div>
+          <div className="relative w-full">
+            <img
+              src={portada4}
+              alt="Portada de la Ruta de Inducción"
+              className="mt-0 mx-auto w-[118%] max-w-none h-auto object-contain relative left-1/2 -translate-x-1/2"
+            />
+          </div>
+          <div className="relative w-full">
+            <img
+              src={portada5}
+              alt="Portada de la Ruta de Inducción"
+              className="mt-0 mx-auto w-[118%] max-w-none h-auto object-contain relative left-1/2 -translate-x-1/2"
+            />
+          </div>
         </div>
 
       </div>

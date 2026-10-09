@@ -39,6 +39,37 @@ def _youtube_id(video_url):
     return coincidencia.group(1) if coincidencia else url
 
 
+_YOUTUBE_HOST_RE = re.compile(
+    r'https?://(?:www\.)?(?:youtube\.com|youtu\.be)/', re.IGNORECASE
+)
+
+
+def _es_imagen_url(video_url):
+    """True si la URL apunta a una imagen y no a un video de YouTube.
+
+    El campo "URL del video" de una lección acepta también enlaces a imágenes:
+    si la URL NO es de YouTube (sea de alta o baja resolución, con o sin
+    extensión en el nombre del archivo), el frontend la muestra como imagen en
+    vez del iframe. La extensión no es el criterio: las imágenes de WhatsApp,
+    Blogger, CDNs y similares suelen venir sin .jpg/.png y solo se distinguen
+    por no ser un enlace de YouTube.
+    """
+    if not video_url:
+        return False
+    url = video_url.strip()
+    # Un enlace de YouTube —o un ID de video suelto— se embebe como video;
+    # cualquier otra URL se trata como imagen.
+    if _YOUTUBE_HOST_RE.search(url) or _YOUTUBE_ID_RE.search(url):
+        return False
+    # Las rutas locales de archivos subidos (media/recursos/...) o URLs
+    # absolutas que no son YouTube son imágenes.
+    if url.startswith('/media/'):
+        return True
+    if '://' not in url and 'www.' not in url:
+        return False
+    return True
+
+
 def _serializar_curso(course):
     """Aplana Course › modules › lessons al contrato que espera el frontend.
 
@@ -56,6 +87,7 @@ def _serializar_curso(course):
                 'duration': leccion.duration or '—',
                 'path': '' if orden == 1 else f'/leccion/{orden}',
                 'videoId': _youtube_id(leccion.video_url),
+                'mediaType': 'imagen' if _es_imagen_url(leccion.video_url) else 'video',
                 'content_text': leccion.content_text,
             })
 

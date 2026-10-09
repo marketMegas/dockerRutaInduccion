@@ -300,25 +300,42 @@ export const CursoLeccionPage = () => {
         </div>
 
 
-        {/* 3. Reproductor de Video */}
+        {/* 3. Reproductor de Video (o imagen, si la URL del admin es una imagen) */}
         {!((course.id === 2 && parsedLeccionId === 2) || (course.id === 3 && parsedLeccionId === 4)) && (
-          <div className="relative aspect-video w-full bg-black rounded-[24px] overflow-hidden shadow-2xl border-[6px] border-white/10">
-            {currentLesson.videoId ? (
-              <iframe
-                className="absolute inset-0 w-full h-full"
-                src={`https://www.youtube.com/embed/${currentLesson.videoId}`}
-                title={currentLesson.title}
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-              ></iframe>
-            ) : (
-              <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center text-gray-500">
-                <Play className="w-16 h-16 mb-4 opacity-50" />
-                <p className="text-lg font-medium">Video en desarrollo</p>
-              </div>
-            )}
-          </div>
+          currentLesson.mediaType === 'imagen' ? (
+            <div className="relative w-full aspect-video bg-black rounded-[24px] overflow-hidden shadow-2xl border-[6px] border-white/10">
+              {currentLesson.videoId ? (
+                <img
+                  src={currentLesson.videoId}
+                  alt={currentLesson.title}
+                  className="absolute inset-0 w-full h-full object-contain"
+                />
+              ) : (
+                <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center text-gray-500">
+                  <Play className="w-16 h-16 mb-4 opacity-50" />
+                  <p className="text-lg font-medium">Imagen en desarrollo</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="relative aspect-video w-full bg-black rounded-[24px] overflow-hidden shadow-2xl border-[6px] border-white/10">
+              {currentLesson.videoId ? (
+                <iframe
+                  className="absolute inset-0 w-full h-full"
+                  src={`https://www.youtube.com/embed/${currentLesson.videoId}`}
+                  title={currentLesson.title}
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                ></iframe>
+              ) : (
+                <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center text-gray-500">
+                  <Play className="w-16 h-16 mb-4 opacity-50" />
+                  <p className="text-lg font-medium">Video en desarrollo</p>
+                </div>
+              )}
+            </div>
+          )
         )}
 
         {/* 3b. Contenido escrito de la lección: el campo "Contenido escrito"
