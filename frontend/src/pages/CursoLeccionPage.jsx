@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, CheckCircle2, Play, Lock } from 'lucide-react';
 import { useCourseStore } from '../store/useCourseStore';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
+import { TextoEnParrafos } from '../components/shared/TextoEnParrafos';
 import { useAuth } from '../context/AuthContext';
 import { EvaluacionCurso } from '../components/EvaluacionCurso';
 
@@ -161,9 +162,11 @@ export const CursoLeccionPage = () => {
             <h2 className="text-2xl font-black text-gray-900 tracking-tight break-words">
               Sobre este curso
             </h2>
-            <p className="mt-4 text-gray-700 leading-relaxed whitespace-pre-line break-words">
-              {course.description}
-            </p>
+            <TextoEnParrafos
+              texto={course.description}
+              className="mt-4 space-y-3"
+              parrafoClassName="text-gray-700 leading-relaxed break-words"
+            />
           </div>
         </div>
       );

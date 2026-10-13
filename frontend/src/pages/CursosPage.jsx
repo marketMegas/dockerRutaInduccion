@@ -111,12 +111,12 @@ export const CursosPage = () => {
               </button>
 
               {/* Columna 1: Imagen/Ilustración */}
-              <div className={`w-full lg:w-[260px] h-48 lg:h-[180px] rounded-2xl flex items-center justify-center flex-shrink-0 relative overflow-hidden shadow-sm ${!course.imageUrl ? course.color : ''}`}>
+              <div className={`w-full lg:w-[210px] h-56 lg:h-[280px] rounded-2xl flex items-center justify-center flex-shrink-0 relative overflow-hidden shadow-sm ${!course.imageUrl ? course.color : ''}`}>
                 {course.imageUrl ? (
                   <img
                     src={course.imageUrl}
                     alt={course.title}
-                    className="w-full h-full object-cover transition-transform duration-700 hover:scale-110"
+                    className="w-full h-full object-cover"
                   />
                 ) : (
                   <>
