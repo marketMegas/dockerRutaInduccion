@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FileText, Clock, BarChart, MoreVertical, Bot, Users, Megaphone, LineChart, Search } from 'lucide-react';
 import { useCourseStore } from '../store/useCourseStore';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
+import { TextoEnParrafos } from '../components/shared/TextoEnParrafos';
 import { useAuth } from '../context/AuthContext';
 
 // Helper local para mapear strings de icono a componentes Lucide
@@ -134,9 +135,11 @@ export const CursosPage = () => {
                   {course.badge}
                 </span>
                 <h2 className="text-xl font-bold text-gray-900 mb-2 break-words">{highlightText(course.title)}</h2>
-                <p className="text-gray-500 text-sm mb-5 leading-relaxed pr-0 lg:pr-8 break-words">
-                  {highlightText(course.description)}
-                </p>
+                <TextoEnParrafos
+                  texto={course.description}
+                  className="text-gray-500 text-sm mb-5 leading-relaxed pr-0 lg:pr-8 break-words space-y-2"
+                  renderizar={highlightText}
+                />
 
                 <div className="flex flex-wrap items-center gap-6 mt-auto">
                   <div className="flex items-center gap-2 text-gray-500 text-sm">

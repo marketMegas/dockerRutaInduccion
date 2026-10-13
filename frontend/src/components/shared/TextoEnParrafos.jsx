@@ -1,8 +1,8 @@
 import React from 'react';
 
-export const TextoEnParrafos = ({ texto = '', className = '', parrafoClassName = '' }) => {
+export const TextoEnParrafos = ({ texto = '', className = '', parrafoClassName = '', renderizar }) => {
   const bloques = String(texto)
-    .split(/\n+/)
+    .split(/\r?\n/)
     .map((bloque) => bloque.trim())
     .filter(Boolean);
 
@@ -12,7 +12,7 @@ export const TextoEnParrafos = ({ texto = '', className = '', parrafoClassName =
     <div className={className}>
       {bloques.map((bloque, index) => (
         <p key={index} className={parrafoClassName}>
-          {bloque}
+          {renderizar ? renderizar(bloque, index) : bloque}
         </p>
       ))}
     </div>
