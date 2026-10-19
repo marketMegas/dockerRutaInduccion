@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import ReadOnlyPasswordHashWidget, UserChangeForm
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 
 
 class _WidgetContrasenaSinHash(ReadOnlyPasswordHashWidget):
@@ -29,3 +29,10 @@ class UsuarioAdmin(UserAdmin):
 if admin.site.is_registered(User):
     admin.site.unregister(User)
 admin.site.register(User, UsuarioAdmin)
+
+# Grupos fuera del menu: la plataforma no usa el sistema de permisos de Django
+# (RH da de alta alumnos en una lista blanca, no asigna roles), asi que dejar
+# Grupos visible solo invita a tocar algo que no afecta a nadie. Los usuarios
+# siguen administrables.
+if admin.site.is_registered(Group):
+    admin.site.unregister(Group)

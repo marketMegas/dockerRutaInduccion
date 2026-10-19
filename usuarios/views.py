@@ -90,4 +90,8 @@ def verificar_acceso(request):
         'uid': claims['sub'],
         'email': email,
         'nombre': user.get_full_name() or user.username,
+        # Es el mismo is_staff de /admin: el frontend con esto decide si muestra
+        # la pestaña de gestion de evaluaciones. No es un rol nuevo que
+        # mantener, solo la traduccion a JSON del interruptor que RH ya usa.
+        'es_staff': bool(user.is_staff),
     })

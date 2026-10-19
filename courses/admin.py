@@ -3,7 +3,7 @@ from django.core.files.storage import default_storage
 from django.db.models import Count, OuterRef, Subquery
 from django.http import HttpResponseRedirect
 from django.urls import reverse
-from .models import Course, Module, Lesson, UserProgress, Calificacion, Certificado, Recurso
+from .models import Course, Lesson, Calificacion, Certificado, Recurso
 from .views import _adjunto_certificado, _cuerpo_certificado, _enviar
 from evaluaciones.models import Evaluacion
 
@@ -13,19 +13,14 @@ class LessonInline(admin.TabularInline):
     fields = ('title', 'video_url', 'duration', 'content_text', 'order')
     ordering = ('order',)
 
-class ModuleInline(admin.TabularInline):
-    model = Module
-    extra = 1
-    fields = ('title', 'order')
-    ordering = ('order',)
-
 class EvaluacionInline(admin.TabularInline):
-    # Banco de preguntas del curso. Antes las preguntas estaban escritas en el
-    # JSX del frontend, asi que un curso nuevo creado desde aca salia sin nada
-    # que evaluar. La evaluacion se edita en su propia pagina (tiene preguntas
-    # y opciones anidadas); aca solo se declara que este curso tiene una.
+    # La evaluacion del curso, al final del formulario. Un curso tiene una
+    # sola (OneToOne), asi que el inline no deja agregar una segunda. Las
+    # preguntas y opciones se editan en la pagina propia de la evaluacion
+    # (enlace "modificar"): Django no permite anidar inlines a mas de un nivel.
     model = Evaluacion
     extra = 1
+    max_num = 1
     fields = ('titulo', 'puntaje_aprobacion', 'activa', 'orden')
     ordering = ('orden',)
     show_change_link = True
@@ -47,32 +42,13 @@ class CourseAdmin(admin.ModelAdmin):
         ('Contenido', {'fields': ('title', 'description', 'cover_image')}),
         ('Presentación', {'fields': ('icon_type', 'accent_color', 'badge', 'level', 'duration')}),
     )
-    inlines = [ModuleInline, RecursoInline, EvaluacionInline]
+    # El orden importa: primero el contenido (lecciones), los recursos, y la
+    # evaluacion al final del curso.
+    inlines = [LessonInline, RecursoInline, EvaluacionInline]
 
-@admin.register(Module)
-class ModuleAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'course', 'order')
-    list_filter = ('course',)
-    search_fields = ('title',)
-    inlines = [LessonInline]
-
-@admin.register(Lesson)
-class LessonAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'module', 'order')
-    list_filter = ('module__course', 'module')
-    search_fields = ('title',)
-
-@admin.register(Recurso)
-class RecursoAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'tipo', 'course', 'order')
-    list_filter = ('tipo', 'course')
-    search_fields = ('title', 'course__title')
-
-@admin.register(UserProgress)
-class UserProgressAdmin(admin.ModelAdmin):
-    list_display = ('user_id', 'course_id', 'lesson_id', 'completado', 'fecha_actualizacion')
-    list_filter = ('completado', 'course_id')
-    search_fields = ('user_id', 'course_id', 'lesson_id')
+# Lesson, Recurso y UserProgress NO se registran sueltos: las lecciones y los
+# recursos se editan dentro del curso, y el progreso es dato operativo que no
+# se toca a mano. El menu queda con Cursos, Calificaciones y Certificados.
 
 # Registrada para que el enlace del correo de aprobacion (/admin/courses/calificacion/)
 # sirva de algo: antes las notas solo se veian en la base. Antes de este cambio

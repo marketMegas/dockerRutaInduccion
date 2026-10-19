@@ -26,6 +26,13 @@ export const AuthProvider = ({ children }) => {
   const [autorizado, setAutorizado] = useState(false);
   const [motivoBloqueo, setMotivoBloqueo] = useState('');
 
+  // Si el backend lo marco como staff (el interruptor "Acceso al sitio de
+  // admin" de /admin > Users). Es una sola bandera booleana y no un objeto de
+  // permisos: el unico consumidor es el Sidebar para decidir si pinta la
+  // pestaña "Evaluaciones", y la proteccion real de esa pantalla no es este
+  // estado sino el 403 que manda requiere_staff en el backend.
+  const [esStaff, setEsStaff] = useState(false);
+
   // De QUE usuario es la respuesta de `verificar` que hay en `autorizado`.
   // Guarda el uid y no un booleano de "ya consulte", porque la pregunta que
   // tiene que responder ProtectedRoute es "esa autorizacion es de ESTE usuario":
@@ -61,6 +68,7 @@ export const AuthProvider = ({ children }) => {
     if (!currentUser) {
       setAutorizado(false);
       setMotivoBloqueo('');
+      setEsStaff(false);
       // Tambien se olvida el uid verificado: si el mismo alumno vuelve a
       // entrar, `autorizado` arranca en false y sin esto se leeria como
       // "ya se sabe que no esta dado de alta".
@@ -75,6 +83,7 @@ export const AuthProvider = ({ children }) => {
         const r = await api.verificarAcceso();
         if (!vigente) return;
         setAutorizado(r.autorizado === true);
+        setEsStaff(r.autorizado === true && r.es_staff === true);
         setMotivoBloqueo(r.autorizado ? '' : (r.error || 'Tu cuenta no esta habilitada.'));
       } catch (error) {
         if (!vigente) return;
@@ -94,6 +103,7 @@ export const AuthProvider = ({ children }) => {
           + `detalle=${error.detalle || 'sin_detalle'}`
         );
         setAutorizado(false);
+        setEsStaff(false);
         setMotivoBloqueo(
           error.status === 401
             ? 'Tu sesion no se pudo verificar. Vuelve a iniciar sesion.'
@@ -140,6 +150,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setAutorizado(false);
     setMotivoBloqueo('');
+    setEsStaff(false);
     // Sin esto, si el mismo correo vuelve a entrar un rato despues veria directo
     // la pantalla de acceso restringido sin volver a preguntar a Django:
     // `autorizado` arrancaria en false con el uid ya marcado como verificado y
@@ -162,6 +173,7 @@ export const AuthProvider = ({ children }) => {
     autorizado,
     verificando,
     motivoBloqueo,
+    esStaff,
   };
 
   return (

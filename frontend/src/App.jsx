@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { ProtectedRoute } from './components/shared/ProtectedRoute';
+import { RequireStaff } from './components/shared/RequireStaff';
 import { AuthenticatedRoute } from './components/shared/AuthenticatedRoute';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
@@ -12,6 +13,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ForosPage } from './pages/ForosPage';
 
 import { CalificacionesPage } from './pages/CalificacionesPage';
+import { EvaluacionesAdminPage } from './pages/EvaluacionesAdminPage';
 
 function App() {
   return (
@@ -34,6 +36,14 @@ function App() {
             <Route path="/curso/:id" element={<CursoDetailPage />} />
             <Route path="/curso/:id/leccion/:leccionId" element={<CursoLeccionPage />} />
             <Route path="/calificaciones" element={<CalificacionesPage />} />
+
+            {/* Gestion del banco de evaluaciones. Va dentro de ProtectedRoute
+                (sesion + alta) y de RequireStaff (is_staff de Django); el
+                backend ademas exige staff en cada llamada, asi que esta rama
+                es solo para no mostrarle la pantalla a un alumno normal. */}
+            <Route element={<RequireStaff />}>
+              <Route path="/evaluaciones" element={<EvaluacionesAdminPage />} />
+            </Route>
 
             {/* Fallback para rutas no definidas dentro del dashboard */}
             <Route path="*" element={

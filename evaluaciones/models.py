@@ -12,8 +12,11 @@ class Evaluacion(models.Model):
     encontraba con "este curso aun no tiene evaluacion".
     """
 
-    course = models.ForeignKey(
-        Course, related_name='evaluaciones', on_delete=models.CASCADE,
+    # OneToOne y no FK: un curso tiene EXACTAMENTE una evaluacion. Antes podia
+    # tener varias y habia que elegir la activa; con OneToOne la base misma
+    # garantiza que no se cargue una segunda.
+    course = models.OneToOneField(
+        Course, related_name='evaluacion', on_delete=models.CASCADE,
         verbose_name="Curso",
     )
     # Decorativo: es lo que ve el estudiante arriba del quiz. Lo edita quien

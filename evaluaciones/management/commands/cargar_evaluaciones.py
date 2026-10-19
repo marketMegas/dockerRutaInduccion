@@ -163,11 +163,14 @@ class Command(BaseCommand):
             self.stdout.write('  (no hay cursos)')
             return
         for curso in cursos:
-            activas = curso.evaluaciones.filter(activa=True)
-            estado = ', '.join(f'"{e.titulo}"' for e in activas) or 'sin evaluación'
+            evaluacion = getattr(curso, 'evaluacion', None)
+            if evaluacion is not None and evaluacion.activa:
+                estado = f'"{evaluacion.titulo}"'
+            else:
+                estado = 'sin evaluación'
             self.stdout.write(
                 f'  pk {curso.id}: {curso.title} '
-                f'({curso.modules.count()} módulos) -> {estado}'
+                f'({curso.lessons.count()} lecciones) -> {estado}'
             )
 
         self.stdout.write(
@@ -175,11 +178,12 @@ class Command(BaseCommand):
         )
 
     def _cargar(self, curso, banco, titulo, opciones):
-        existente = curso.evaluaciones.filter(titulo=titulo).first()
+        # Un curso tiene una sola evaluación (OneToOne): si ya hay una, es esa.
+        existente = getattr(curso, 'evaluacion', None)
         if existente and not opciones['reemplazar']:
             raise CommandError(
-                f'El curso ya tiene una evaluación llamada "{titulo}" '
-                f'(pk {existente.id}, {existente.total_preguntas} preguntas). '
+                f'El curso ya tiene una evaluación ("{existente.titulo}", '
+                f'pk {existente.id}, {existente.total_preguntas} preguntas). '
                 'Usá --reemplazar si querés recargarla.'
             )
 

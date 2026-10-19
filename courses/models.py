@@ -32,21 +32,12 @@ class Course(models.Model):
         verbose_name = "Curso"
         verbose_name_plural = "Cursos"
 
-class Module(models.Model):
-    course = models.ForeignKey(Course, related_name='modules', on_delete=models.CASCADE, verbose_name="Curso")
-    title = models.CharField(max_length=255, verbose_name="Título del módulo")
-    order = models.PositiveIntegerField(default=0, verbose_name="Orden")
-
-    class Meta:
-        ordering = ['order']
-        verbose_name = "Módulo"
-        verbose_name_plural = "Módulos"
-
-    def __str__(self):
-        return f"{self.course.title} - {self.title}"
-
 class Lesson(models.Model):
-    module = models.ForeignKey(Module, related_name='lessons', on_delete=models.CASCADE, verbose_name="Módulo")
+    # Las lecciones cuelgan directo del curso: se elimino el nivel "Modulo"
+    # para que el admin muestre Curso › Lecciones › Evaluacion sin pasos
+    # intermedios. El API no cambia, porque el serializador ya aplanaba los
+    # modulos en una sola lista de lecciones.
+    course = models.ForeignKey(Course, related_name='lessons', on_delete=models.CASCADE, verbose_name="Curso")
     title = models.CharField(max_length=255, verbose_name="Título de la lección")
     video_url = models.URLField(verbose_name="URL del video")
     duration = models.CharField(max_length=50, verbose_name="Duración (ej. 12:30)")
@@ -59,7 +50,7 @@ class Lesson(models.Model):
         verbose_name_plural = "Lecciones"
 
     def __str__(self):
-        return f"{self.module.title} - {self.title}"
+        return f"{self.course.title} - {self.title}"
 
 class Recurso(models.Model):
     TIPO_CHOICES = [

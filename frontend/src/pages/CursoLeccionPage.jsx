@@ -8,15 +8,6 @@ import { useAuth } from '../context/AuthContext';
 import { EvaluacionCurso } from '../components/EvaluacionCurso';
 
 import { CourseProgress } from '../components/CourseProgress';
-import { Course1Leccion2Content } from '../components/course/lessons/Course1Leccion2Content';
-import { Course1Leccion3Content } from '../components/course/lessons/Course1Leccion3Content';
-import { Course2Leccion2Content } from '../components/course/lessons/Course2Leccion2Content';
-import { Course2Leccion3Content } from '../components/course/lessons/Course2Leccion3Content';
-import { Course2Leccion4Content } from '../components/course/lessons/Course2Leccion4Content';
-import { Course3Leccion2Content } from '../components/course/lessons/Course3Leccion2Content';
-import { Course3Leccion3Content } from '../components/course/lessons/Course3Leccion3Content';
-import { Course3Leccion4Content } from '../components/course/lessons/Course3Leccion4Content';
-import { Course3Leccion5Content } from '../components/course/lessons/Course3Leccion5Content';
 
 export const CursoLeccionPage = () => {
   const { id, leccionId } = useParams();
@@ -132,29 +123,10 @@ export const CursoLeccionPage = () => {
   // los clicks mapean a esos valores y no a la posición de la pestaña.
   const tabActiva = (tab) => (tab === 'Evaluación' ? 2 : 0);
 
-  // Function to render the correct content component
+  // El contenido propio de la lección viene del admin (Lesson.content_text) y
+  // se pinta debajo del video. Este bloque es solo el fallback para lecciones
+  // sin contenido: muestra la descripción del curso.
   const renderLessonContent = () => {
-    if (course.id === 1) {
-      if (parsedLeccionId === 2) return <Course1Leccion2Content />;
-      if (parsedLeccionId === 3) return <Course1Leccion3Content />;
-    }
-
-    if (course.id === 2) {
-      if (parsedLeccionId === 2) return <Course2Leccion2Content />;
-      if (parsedLeccionId === 3) return <Course2Leccion3Content />;
-      if (parsedLeccionId === 4) return <Course2Leccion4Content />;
-    }
-
-    if (course.id === 3) {
-      if (parsedLeccionId === 2) return <Course3Leccion2Content />;
-      if (parsedLeccionId === 3) return <Course3Leccion3Content />;
-      if (parsedLeccionId === 4) return <Course3Leccion4Content />;
-      if (parsedLeccionId === 5) return <Course3Leccion5Content />;
-    }
-
-    // Resumen solo se pinta para lecciones SIN contenido propio: el texto de la
-    // lección vive en su tarjeta de debajo del video, y acá se muestra la info
-    // del curso en el lugar que le correspondería.
     if (course.description) {
       return (
         <div className="py-6 flex flex-col gap-8 w-full">
@@ -304,41 +276,39 @@ export const CursoLeccionPage = () => {
 
 
         {/* 3. Reproductor de Video (o imagen, si la URL del admin es una imagen) */}
-        {!((course.id === 2 && parsedLeccionId === 2) || (course.id === 3 && parsedLeccionId === 4)) && (
-          currentLesson.mediaType === 'imagen' ? (
-            <div className="relative w-full aspect-video bg-black rounded-[24px] overflow-hidden shadow-2xl border-[6px] border-white/10">
-              {currentLesson.videoId ? (
-                <img
-                  src={currentLesson.videoId}
-                  alt={currentLesson.title}
-                  className="absolute inset-0 w-full h-full object-contain"
-                />
-              ) : (
-                <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center text-gray-500">
-                  <Play className="w-16 h-16 mb-4 opacity-50" />
-                  <p className="text-lg font-medium">Imagen en desarrollo</p>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="relative aspect-video w-full bg-black rounded-[24px] overflow-hidden shadow-2xl border-[6px] border-white/10">
-              {currentLesson.videoId ? (
-                <iframe
-                  className="absolute inset-0 w-full h-full"
-                  src={`https://www.youtube.com/embed/${currentLesson.videoId}`}
-                  title={currentLesson.title}
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                ></iframe>
-              ) : (
-                <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center text-gray-500">
-                  <Play className="w-16 h-16 mb-4 opacity-50" />
-                  <p className="text-lg font-medium">Video en desarrollo</p>
-                </div>
-              )}
-            </div>
-          )
+        {currentLesson.mediaType === 'imagen' ? (
+          <div className="relative w-full aspect-video bg-black rounded-[24px] overflow-hidden shadow-2xl border-[6px] border-white/10">
+            {currentLesson.videoId ? (
+              <img
+                src={currentLesson.videoId}
+                alt={currentLesson.title}
+                className="absolute inset-0 w-full h-full object-contain"
+              />
+            ) : (
+              <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center text-gray-500">
+                <Play className="w-16 h-16 mb-4 opacity-50" />
+                <p className="text-lg font-medium">Imagen en desarrollo</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="relative aspect-video w-full bg-black rounded-[24px] overflow-hidden shadow-2xl border-[6px] border-white/10">
+            {currentLesson.videoId ? (
+              <iframe
+                className="absolute inset-0 w-full h-full"
+                src={`https://www.youtube.com/embed/${currentLesson.videoId}`}
+                title={currentLesson.title}
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              ></iframe>
+            ) : (
+              <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center text-gray-500">
+                <Play className="w-16 h-16 mb-4 opacity-50" />
+                <p className="text-lg font-medium">Video en desarrollo</p>
+              </div>
+            )}
+          </div>
         )}
 
         {/* 3b. Contenido escrito de la lección: el campo "Contenido escrito"
@@ -408,9 +378,9 @@ export const CursoLeccionPage = () => {
           completedLessons={course.completedLessons} 
         />
 
-        {/* Widget: Lecciones del módulo */}
+        {/* Widget: Lecciones del curso */}
         <div className="bg-white rounded-[24px] p-6 md:p-8 shadow-sm border border-gray-100 flex flex-col gap-6">
-          <h3 className="text-lg font-bold text-gray-900">Lecciones del módulo</h3>
+          <h3 className="text-lg font-bold text-gray-900">Lecciones del curso</h3>
           <div className="flex flex-col gap-3">
             {course.lessons && course.lessons.map((lesson, index) => {
               const lessonNumber = index + 1;

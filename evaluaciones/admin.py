@@ -8,6 +8,20 @@ from .models import Evaluacion, Opcion, Pregunta
 from .serializers import total_correctas
 
 
+class OcultoEnIndice:
+    """Registrado pero fuera del indice del admin.
+
+    Pregunta y Opcion se editan navegando desde la evaluacion (enlaces
+    "modificar"), nunca arrancando por el menu: sus URLs directas y los
+    enlaces show_change_link siguen funcionando. Evaluacion SI entra al
+    indice, como la seccion "Evaluaciones" que viene justo despues de
+    Cursos y desde la cual se llega a todo lo demas.
+    """
+
+    def has_module_permission(self, request):
+        return False
+
+
 class EvaluacionIncompleta(ValidationError):
     """La activacion quedaria colgada: no hay banco completo que corregir.
 
@@ -66,6 +80,40 @@ class OpcionInline(admin.TabularInline):
     ordering = ('orden',)
 
 
+class PreguntaEnEvaluacionForm(forms.ModelForm):
+    """Pregunta con su respuesta correcta elegible en la misma pantalla.
+
+    Django no permite inlines anidados, asi que las opciones no se escriben
+    en el formulario de la evaluacion. Pero MARCAR cual es la correcta entre
+    las que ya existen si cabe aca: es un campo extra (no del modelo) con un
+    desplegable por pregunta, cuyo queryset son las opciones de esa pregunta.
+    El queryset se arma en __init__ porque cada forma del inline tiene su
+    propia instancia y no hay una sola consulta que sirva para todas.
+
+    Sin opciones cargadas el desplegable viene vacio; las opciones se crean
+    desde la pantalla de la pregunta (enlace "modificar").
+    """
+
+    respuesta_correcta = forms.ModelChoiceField(
+        queryset=Opcion.objects.none(),
+        label='Respuesta correcta',
+        required=False,
+        empty_label='(primero cargá las opciones)',
+    )
+
+    class Meta:
+        model = Pregunta
+        fields = ('texto', 'contexto', 'es_larga', 'orden')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields['respuesta_correcta'].queryset = (
+                self.instance.opciones.all()
+            )
+            self.initial['respuesta_correcta'] = self.instance.opcion_correcta
+
+
 class PreguntaInline(admin.StackedInline):
     """Preguntas de la evaluación, editables junto a ella.
 
@@ -74,15 +122,18 @@ class PreguntaInline(admin.StackedInline):
     Con el que estaba puesto, la pantalla de evaluación salía sin un solo campo
     de opción, sin error, y no había forma de marcar la correcta desde ahí.
 
-    Las opciones se cargan entrando a cada pregunta (enlace "modificar" de
-    abajo), donde OpcionInline sí funciona por ser de primer nivel. El
-    `save_related` de EvaluacionAdmin es lo que avisa al final si al activar
-    falta alguna correcta.
+    Lo que si hace esta pantalla es marcar la respuesta correcta entre las
+    opciones ya cargadas (campo `respuesta_correcta` del form de arriba). Para
+    crear opciones o editar su texto, cada pregunta tiene el enlace
+    "modificar", que abre PreguntaAdmin con OpcionInline, donde sí funcionan
+    los inlines de primer nivel. El `save_related` de EvaluacionAdmin aplica
+    el mark y avisa al final si al activar falta alguna correcta.
     """
 
     model = Pregunta
+    form = PreguntaEnEvaluacionForm
     extra = 1
-    fields = ('texto', 'contexto', 'es_larga', 'orden')
+    fields = ('texto', 'contexto', 'es_larga', 'orden', 'respuesta_correcta')
     ordering = ('orden',)
     show_change_link = True
 
@@ -98,12 +149,12 @@ class EvaluacionAdmin(admin.ModelAdmin):
             'fields': ('course', 'titulo', 'activa', 'orden'),
             'description': (
                 'Primero guardá la evaluación con sus preguntas y la dejá '
-                'inactiva. Después entrá a cada pregunta con el enlace '
-                '<b>modificar</b> para cargarle las opciones y marcar cuál es '
-                'la correcta: Django no permite poner opciones en esta misma '
-                'pantalla. Al volver, activá la evaluación; si alguna pregunta '
-                'quedó sin correcta, el guardado se rechaza y te dice '
-                'cuántas son.'
+                'inactiva. Después, en el desplegable <b>Respuesta correcta</b> '
+                'de cada pregunta, elegí cuál de sus opciones es la buena. '
+                'Las opciones se crean entrando a cada pregunta con el enlace '
+                '<b>modificar</b>: Django no permite escribir opciones en esta '
+                'misma pantalla. Al activar, si alguna pregunta quedó sin '
+                'correcta, el guardado se rechaza y te dice cuántas son.'
             ),
         }),
         ('Aprobación', {
@@ -128,16 +179,22 @@ class EvaluacionAdmin(admin.ModelAdmin):
         return f'{total}'
 
     def save_related(self, request, form, formsets, change):
-        """No deja activar una evaluación sin un banco corregible.
+        """Aplica lo elegido y no deja activar sin un banco corregible.
 
         Va DESPUES de super(), cuando preguntas y opciones ya están en la
         base: total_correctas consulta las filas reales, no el formulario.
+
+        Primero se aplican las respuestas correctas elegidas en cada pregunta
+        (el campo extra del inline), y recién después la comprobación de
+        activación: si no, activar y marcar en el mismo guardado sería
+        rechazado, porque la validación miraría los flags viejos.
 
         Sin esta comprobación, activar desde /admin una evaluación recién
         creada es el camino natural, y el estudiante se encuentra un quiz sin
         preguntas o con preguntas que nadie puede acertar.
         """
         super().save_related(request, form, formsets, change)
+        self._aplicar_respuestas_correctas(formsets)
 
         evaluacion = form.instance
         if not evaluacion.activa:
@@ -158,6 +215,33 @@ class EvaluacionAdmin(admin.ModelAdmin):
                 'preguntas no tienen exactamente una opción marcada como '
                 'correcta.'
             )
+
+    def _aplicar_respuestas_correctas(self, formsets):
+        """Marca la opcion elegida en cada pregunta y desmarca las demas.
+
+        Una sola correcta por pregunta es la regla del modelo (la bandera
+        `es_correcta`), y aqui no hay formset de opciones que la valide: el
+        mark se aplica directo contra la base, desmarcando las anteriores de
+        esa pregunta. Elegir vacio no cambia nada, que es lo que pasa cuando
+        el formulario se manda sin tocar el desplegable.
+
+        Los DELETE y las formas sin pk (preguntas nuevas, todavia sin
+        opciones) se saltean.
+        """
+        for formset in formsets:
+            if formset.model is not Pregunta:
+                continue
+            for form_pregunta in formset.forms:
+                if form_pregunta.cleaned_data.get('DELETE'):
+                    continue
+                pregunta = form_pregunta.instance
+                if not pregunta.pk:
+                    continue
+                correcta = form_pregunta.cleaned_data.get('respuesta_correcta')
+                if not correcta:
+                    continue
+                pregunta.opciones.update(es_correcta=False)
+                Opcion.objects.filter(pk=correcta.pk).update(es_correcta=True)
 
     def changeform_view(self, request, object_id=None, form_url='', extra_context=None):
         """Muestra el error de activación como mensaje, no como error 500.
@@ -181,7 +265,7 @@ class EvaluacionAdmin(admin.ModelAdmin):
 
 
 @admin.register(Pregunta)
-class PreguntaAdmin(admin.ModelAdmin):
+class PreguntaAdmin(OcultoEnIndice, admin.ModelAdmin):
     list_display = ('__str__', 'evaluacion', 'es_larga', 'orden')
     list_filter = ('es_larga', 'evaluacion__course')
     search_fields = ('texto', 'contexto')
@@ -206,7 +290,7 @@ class PreguntaAdmin(admin.ModelAdmin):
 
 
 @admin.register(Opcion)
-class OpcionAdmin(admin.ModelAdmin):
+class OpcionAdmin(OcultoEnIndice, admin.ModelAdmin):
     list_display = ('texto', 'pregunta', 'es_correcta', 'orden')
     list_filter = ('es_correcta', 'pregunta__evaluacion__course')
     search_fields = ('texto',)

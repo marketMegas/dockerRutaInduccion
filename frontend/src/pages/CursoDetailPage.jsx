@@ -7,19 +7,6 @@ import { TextoEnParrafos } from '../components/shared/TextoEnParrafos';
 import { useAuth } from '../context/AuthContext';
 
 import { CourseProgress } from '../components/CourseProgress';
-import { Course1Summary } from '../components/course/summaries/Course1Summary';
-import { Course2Summary } from '../components/course/summaries/Course2Summary';
-import { Course3Summary } from '../components/course/summaries/Course3Summary';
-
-// Solo los cursos que ya traian su resumen en el codigo. Un curso nuevo (creado
-// desde /admin) no debe caer en un resumen hardcodeado: antes el else final era
-// <Course1Summary />, asi que cualquier curso unknown terminaba mostrando el
-// contenido GLP del curso 1. Sin entrada aqui, se pinta la descripcion del admin.
-const CURSO_CON_RESUMEN = {
-  1: Course1Summary,
-  2: Course2Summary,
-  3: Course3Summary,
-};
 
 export const CursoDetailPage = () => {
   const { id } = useParams();
@@ -69,9 +56,6 @@ export const CursoDetailPage = () => {
     ? lesson1.videoId
     : (course.videoId || '');
   const lesson1EsImagen = lesson1 && lesson1.mediaType === 'imagen';
-
-  const ResumenDelCurso = CURSO_CON_RESUMEN[course.id];
-
 
   return (
     <div className="flex flex-col lg:grid lg:grid-cols-3 gap-8 items-start w-full max-w-[1600px] mx-auto">
@@ -162,9 +146,7 @@ export const CursoDetailPage = () => {
           {/* TAB: RESUMEN */}
           {activeTab === 0 && (
             <div className="bg-white rounded-[20px] border border-gray-100 p-6 sm:p-8 shadow-sm">
-              {ResumenDelCurso ? (
-                <ResumenDelCurso />
-              ) : course.description ? (
+              {course.description ? (
                 <div>
                   <h2 className="text-2xl font-black text-gray-900 tracking-tight break-words">
                     Sobre este curso
@@ -250,7 +232,7 @@ export const CursoDetailPage = () => {
               onClick={() => navigate(`/curso/${id}${course.lessons[1].path}`)}
               className="flex items-center gap-2 bg-[#f6811e] text-white px-8 py-4 rounded-2xl font-bold hover:bg-[#5fbd44] transition-all shadow-lg shadow-[#f6811e]/20 group"
             >
-              Siguiente Módulo
+              Siguiente lección
               <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
@@ -267,9 +249,9 @@ export const CursoDetailPage = () => {
           completedLessons={course.completedLessons} 
         />
 
-        {/* Widget: Lecciones del módulo */}
+        {/* Widget: Lecciones del curso */}
         <div className="bg-white rounded-[24px] p-6 md:p-8 shadow-sm border border-gray-100 flex flex-col gap-6">
-          <h3 className="text-lg font-bold text-gray-900">Lecciones del módulo</h3>
+          <h3 className="text-lg font-bold text-gray-900">Lecciones del curso</h3>
           <div className="flex flex-col gap-3">
             {course.lessons && course.lessons.map((lesson, index) => {
               const isCompleted = index < course.completedLessons;

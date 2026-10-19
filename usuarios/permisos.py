@@ -138,3 +138,51 @@ def requiere_estudiante(vista):
         return vista(request, *args, **kwargs)
 
     return envoltura
+
+
+def requiere_staff(vista):
+    """Exige sesion, alta en Django Y el is_staff de /admin.
+
+    Las APIs de gestion de evaluaciones dejan ver y escribir las respuestas
+    correctas, que es justamente lo que el quiz del estudiante nunca entrega.
+    Con `requiere_estudiante` no alcanza: cualquier alumno dado de alta pasa.
+    El interruptor es el mismo `is_staff` de Django que abre /admin, asi que
+    no hay una segunda lista de privilegios que mantener al dia: RH marca al
+    usuario en /admin y esto queda habilitado solo para el.
+
+    Los tres 401/403 se distinguen por `codigo` (token, sin_alta, sin_staff)
+    porque se arreglan en tres lugares distintos: la sesion, el alta en
+    Usuarios, y el checkbox de acceso al admin.
+    """
+    @functools.wraps(vista)
+    def envoltura(request, *args, **kwargs):
+        claims, error = claims_de_la_peticion(request)
+        if error is not None:
+            status, cuerpo = error
+            return JsonResponse(cuerpo, status=status)
+
+        email = str(claims.get('email') or '').strip()
+        user = usuario_autorizado(email)
+        if user is None:
+            return JsonResponse({
+                'error': MENSAJE_SIN_ALTA,
+                'codigo': 'sin_alta',
+            }, status=403)
+
+        if not user.is_staff:
+            return JsonResponse({
+                'error': (
+                    'Tu usuario no tiene permisos de administración para '
+                    'gestionar evaluaciones. Pide a Recursos Humanos que te '
+                    'habilite el acceso al panel.'
+                ),
+                'codigo': 'sin_staff',
+            }, status=403)
+
+        request.firebase_uid = claims['sub']
+        request.firebase_email = email
+        request.django_user = user
+        request.nombre_verificado = user.get_full_name() or user.username
+        return vista(request, *args, **kwargs)
+
+    return envoltura

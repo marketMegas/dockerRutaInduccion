@@ -92,3 +92,67 @@ def total_correctas(evaluacion):
         1 for p in evaluacion.preguntas_ordenadas
         if sum(1 for o in p.opciones_ordenadas if o.es_correcta) == 1
     )
+
+
+# ── La version para la pantalla de gestion (solo staff) ──────────────────
+#
+# Estas funciones SI incluyen `es_correcta`, a diferencia de
+# `serializar_evaluacion`. Es a proposito y con el mismo criterio de siempre:
+# el estudiante nunca recibe la respuesta correcta (la haria el quiz
+# innecesario), pero quien gestiona el banco no puede marcar la correcta sin
+# verla. La proteccion no es el JSON: es que estas rutas exigen `is_staff`
+# (ver usuarios.permisos.requiere_staff y evaluaciones.admin_api).
+
+
+def _fila_opcion_admin(opcion):
+    return {
+        'id': opcion.id,
+        'texto': opcion.texto,
+        'es_correcta': opcion.es_correcta,
+        'orden': opcion.orden,
+    }
+
+
+def _fila_pregunta_admin(pregunta):
+    return {
+        'id': pregunta.id,
+        'texto': pregunta.texto,
+        'contexto': pregunta.contexto,
+        'es_larga': pregunta.es_larga,
+        'orden': pregunta.orden,
+        'opciones': [
+            _fila_opcion_admin(o) for o in pregunta.opciones_ordenadas
+        ],
+    }
+
+
+def _fila_evaluacion_resumen(evaluacion):
+    return {
+        'id': evaluacion.id,
+        'course_id': evaluacion.course_id,
+        'course_title': evaluacion.course.title,
+        'titulo': evaluacion.titulo,
+        'puntaje_aprobacion': evaluacion.puntaje_aprobacion,
+        'activa': evaluacion.activa,
+        'orden': evaluacion.orden,
+        'total_preguntas': evaluacion.total_preguntas,
+    }
+
+
+def serializar_lista_admin(evaluaciones):
+    """El listado de la pantalla de gestion: una fila por evaluacion."""
+    return [_fila_evaluacion_resumen(e) for e in evaluaciones]
+
+
+def serializar_admin_evaluacion(evaluacion):
+    """El detalle completo, con preguntas, opciones y la correcta marcada.
+
+    prefetch de `preguntas__opciones` en la vista: sin eso, cada pregunta
+    consulta sus opciones sola y el listado de 30 preguntas son 31 queries.
+    """
+    fila = _fila_evaluacion_resumen(evaluacion)
+    fila['total_preguntas'] = len(evaluacion.preguntas_ordenadas)
+    fila['preguntas'] = [
+        _fila_pregunta_admin(p) for p in evaluacion.preguntas_ordenadas
+    ]
+    return fila

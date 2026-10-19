@@ -31,6 +31,12 @@ urlpatterns = [
     # Va bajo /api/cursos/ y no en la raiz porque una evaluacion siempre
     # pertenece a un curso.
     path('api/cursos/evaluaciones/', include('evaluaciones.urls')),
+    # Gestion del banco (pantalla "Evaluaciones" del sidebar, solo staff) →
+    # /api/admin/evaluaciones/  y  /api/admin/preguntas/  y  /api/admin/opciones/.
+    # Va en /api/admin/ y no en /admin/ porque /admin/ es el panel de Django
+    # con sus propias plantillas; /api/ ya lo enrutan nginx (produccion) y el
+    # proxy de Vite (desarrollo), asi que no hace falta tocar infraestructura.
+    path('api/admin/', include('evaluaciones.urls_admin')),
 ]
 
 if settings.DEBUG:

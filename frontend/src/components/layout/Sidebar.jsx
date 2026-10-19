@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Route, BookOpenCheck,
-  MessagesSquare, FolderKanban, ClipboardCheck, X, LogOut, ArrowRight
+  MessagesSquare, FolderKanban, ClipboardCheck, ClipboardList, X, LogOut, ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCourseStore } from '../../store/useCourseStore';
@@ -11,7 +11,7 @@ import logoMegas from '../../assets/logo-megas.png';
 export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout, currentUser } = useAuth();
+  const { logout, currentUser, esStaff } = useAuth();
   const { courses, isLoading, fetchCourses } = useCourseStore();
 
   useEffect(() => {
@@ -32,6 +32,13 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
   const menuItems = [
     { path: '/dashboard', icon: Route, text: 'Ruta de Inducción' },
     { path: '/cursos', icon: BookOpenCheck, text: 'Mis cursos' },
+    // "Evaluaciones" solo para staff (el interruptor "Acceso al sitio de
+    // admin" de /admin > Users). Un alumno normal no la ve: RequireStaff y
+    // el 403 de requiere_staff en el backend son la proteccion de verdad;
+    // esto es no mostrarle un boton que no le sirve.
+    ...(esStaff
+      ? [{ path: '/evaluaciones', icon: ClipboardList, text: 'Evaluaciones' }]
+      : []),
     { path: '/foros', icon: MessagesSquare, text: 'Foros' },
 
     { path: '/calificaciones', icon: ClipboardCheck, text: 'Calificaciones' }

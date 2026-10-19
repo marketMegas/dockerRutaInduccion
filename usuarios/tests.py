@@ -311,11 +311,26 @@ class VerificarAccesoTest(ConSesion, TestCase):
         self.assertEqual(respuesta.json()['codigo'], 'sin_alta')
 
     def test_no_devuelve_nada_del_user_de_django(self):
-        # La pantalla de acceso restringido solo necesita un mensaje. No hay
-        # por que devolverle el username interno ni el is_staff.
+        # Solo lo que la pantalla consume: el mensaje de bloqueo, la identidad
+        # del token y `es_staff`, que es el unico atributo del User que sale
+        # (lo usa el frontend para mostrar la pestaña de gestion de
+        # evaluaciones). Ni el username interno ni is_active ni nada mas.
         cuerpo = self._post().json()
 
-        self.assertEqual(set(cuerpo), {'autorizado', 'uid', 'email', 'nombre'})
+        self.assertEqual(
+            set(cuerpo),
+            {'autorizado', 'uid', 'email', 'nombre', 'es_staff'},
+        )
+
+    def test_es_staff_refleja_el_interruptor_del_admin(self):
+        # Un alumno normal no es staff; marcar "Acceso al sitio de admin" en
+        # /admin es lo unico que enciende la pestaña de gestion.
+        self.assertFalse(self._post().json()['es_staff'])
+
+        self.alumno.is_staff = True
+        self.alumno.save()
+
+        self.assertTrue(self._post().json()['es_staff'])
 
     def test_solo_post(self):
         self.assertEqual(self.client.get(self.url).status_code, 405)

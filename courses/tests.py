@@ -7,10 +7,11 @@ from django.core import mail
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import IntegrityError, transaction
 from django.test import TestCase, override_settings
 
 from usuarios.testing import ConSesion
-from .models import Calificacion, Certificado, Course
+from .models import Calificacion, Certificado, Course, Lesson, Recurso
 
 AdminUser = get_user_model()
 from evaluaciones.models import Evaluacion, Opcion, Pregunta
@@ -829,3 +830,142 @@ class CertificadoAdminSinAccesoAlPdfTest(TestCase):
         contenido = self.client.get('/admin/courses/calificacion/').content.decode()
 
         self.assertIn('changelist-footer', contenido)
+
+
+class AdminReorganizadoTest(TestCase):
+    """El panel quedó como Curso › Lecciones › Evaluación, sin el nivel Módulo.
+
+    Estas pruebas fijan la estructura nueva: los inlines del curso, la
+    evaluación al final, el menú reducido y la restricción de una sola
+    evaluación por curso. Antes había que entrar a Módulos para ver lecciones,
+    y la evaluación colgaba por fuera del curso.
+    """
+
+    def setUp(self):
+        self.admin = AdminUser.objects.create_superuser(
+            'rh@megas.co', 'clave-de-prueba', 'RRHH',
+        )
+        self.client.force_login(self.admin)
+        self.curso = Course.objects.create(
+            title='Curso con lecciones', description='.',
+        )
+
+    # ── El menú ────────────────────────────────────────────────────────────
+
+    def test_el_indice_no_muestra_modelos_sueltos(self):
+        html = self.client.get('/admin/').content.decode()
+
+        # Ni el nivel Módulo, ni las lecciones/recursos/progreso sueltos: se
+        # editan dentro del curso. Ni las preguntas y opciones, que se entran
+        # desde la evaluación. Ni Grupos, que la plataforma no usa.
+        for ruta in (
+            '/admin/courses/module/',
+            '/admin/courses/lesson/',
+            '/admin/courses/recurso/',
+            '/admin/courses/userprogress/',
+            '/admin/evaluaciones/pregunta/',
+            '/admin/evaluaciones/opcion/',
+            '/admin/auth/group/',
+        ):
+            self.assertNotIn(ruta, html)
+
+    def test_el_indice_deja_cursos_calificaciones_y_certificados(self):
+        html = self.client.get('/admin/').content.decode()
+
+        for ruta in (
+            '/admin/courses/course/',
+            '/admin/courses/calificacion/',
+            '/admin/courses/certificado/',
+        ):
+            self.assertIn(ruta, html)
+
+    def test_el_indice_muestra_evaluaciones_despues_de_cursos(self):
+        html = self.client.get('/admin/').content.decode()
+
+        # La pestaña Evaluaciones es la entrada al banco: lista las
+        # evaluaciones existentes y desde ahi se cargan preguntas y
+        # opciones. Va despues de Cursos (el indice ordena por nombre).
+        posicion = html.index('/admin/evaluaciones/evaluacion/')
+        self.assertLess(
+            html.index('/admin/courses/course/'), posicion,
+        )
+
+    def test_los_usuarios_siguen_administrables(self):
+        # RH da de alta alumnos: sacar el alta de usuarios dejaría el panel
+        # inservible para lo que de verdad se usa.
+        html = self.client.get('/admin/').content.decode()
+
+        self.assertIn('/admin/auth/user/', html)
+
+    # ── Los inlines del curso ──────────────────────────────────────────────
+
+    def test_el_formulario_del_curso_trae_lecciones_recursos_y_evaluacion(self):
+        respuesta = self.client.get(
+            f'/admin/courses/course/{self.curso.id}/change/'
+        )
+        html = respuesta.content.decode()
+
+        self.assertEqual(respuesta.status_code, 200)
+        # El prefijo de cada formset es el related_name del FK.
+        self.assertIn('lessons-TOTAL_FORMS', html)
+        self.assertIn('recursos-TOTAL_FORMS', html)
+        self.assertIn('evaluacion-TOTAL_FORMS', html)
+
+    def test_la_evaluacion_va_despues_de_las_lecciones(self):
+        html = self.client.get(
+            f'/admin/courses/course/{self.curso.id}/change/'
+        ).content.decode()
+
+        self.assertLess(
+            html.index('lessons-TOTAL_FORMS'),
+            html.index('evaluacion-TOTAL_FORMS'),
+        )
+
+    # ── Una sola evaluación por curso ──────────────────────────────────────
+
+    def test_un_curso_no_puede_tener_dos_evaluaciones(self):
+        # OneToOne, no FK: la base misma lo impide. Antes se podían cargar
+        # varias y había que elegir "la activa".
+        Evaluacion.objects.create(
+            course=self.curso, titulo='Única', puntaje_aprobacion=90,
+        )
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Evaluacion.objects.create(
+                course=self.curso, titulo='Segunda', puntaje_aprobacion=90,
+            )
+
+    def test_la_evaluacion_se_alcanza_desde_el_curso(self):
+        evaluacion = Evaluacion.objects.create(
+            course=self.curso, titulo='Única', puntaje_aprobacion=90,
+        )
+
+        self.assertEqual(self.curso.evaluacion, evaluacion)
+
+
+class LeccionesSinModuloTest(ConSesion, TestCase):
+    """Las lecciones cuelgan del curso y el API las sigue sirviendo en orden."""
+
+    def test_el_serializador_numera_las_lecciones_por_order(self):
+        curso = Course.objects.create(pk=7, title='Curso plano', description='.')
+        for orden, titulo in [(2, 'Segunda'), (1, 'Primera')]:
+            Lesson.objects.create(
+                course=curso, title=titulo, video_url='https://youtu.be/abc',
+                duration='10:00', order=orden,
+            )
+
+        respuesta = self.get('/api/cursos/7/')
+
+        self.assertEqual(respuesta.status_code, 200)
+        lecciones = respuesta.json()['lessons']
+        # El orden lo manda `order`, no el id de creación.
+        self.assertEqual([l['title'] for l in lecciones], ['Primera', 'Segunda'])
+        self.assertEqual([l['id'] for l in lecciones], [1, 2])
+
+    def test_el_recurso_sigue_colgando_del_curso(self):
+        curso = Course.objects.create(title='Curso con recurso', description='.')
+        recurso = Recurso.objects.create(
+            course=curso, title='Guía', tipo='PDF', archivo='recursos/guia.pdf',
+        )
+
+        self.assertEqual(list(curso.recursos.all()), [recurso])

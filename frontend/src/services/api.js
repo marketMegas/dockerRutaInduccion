@@ -52,6 +52,7 @@ export const apiFetch = async (ruta, opciones = {}) => {
 // funciona en dev (el proxy de Vite) y en produccion (el proxy de nginx).
 const CURSOS_URL = '/api/cursos/';
 const EVALUACIONES_URL = '/api/cursos/evaluaciones/';
+const ADMIN_URL = '/api/admin/';
 
 // El status va pegado al error: el componente distingue el 404 de un curso sin
 // evaluación ("aún no tiene evaluación") del 409 de un banco con una pregunta
@@ -60,6 +61,27 @@ const EVALUACIONES_URL = '/api/cursos/evaluaciones/';
 const leerJson = async (res) => {
   if (!res.ok) {
     const error = new Error(`Error ${res.status} al pedir ${res.url}`);
+    error.status = res.status;
+    throw error;
+  }
+  return res.json();
+};
+
+// Igual que leerJson, pero ademas lleva el mensaje del backend pegado al
+// error. La API de gestion responde 400 con motivos que el usuario tiene que
+// LEER ("No se puede activar: 1 de las 2 preguntas no tienen exactamente una
+// opcion correcta"), y con leerJson plano esos 400 eran todos el mismo
+// "Error 400 al pedir ...". El campo del backend es `error`.
+const leerJsonAdmin = async (res) => {
+  if (!res.ok) {
+    let mensaje = `Error ${res.status} al pedir ${res.url}`;
+    try {
+      const cuerpo = await res.json();
+      if (cuerpo?.error) mensaje = cuerpo.error;
+    } catch {
+      // Respuesta sin JSON: nos quedamos con el mensaje por defecto.
+    }
+    const error = new Error(mensaje);
     error.status = res.status;
     throw error;
   }
@@ -214,5 +236,96 @@ const error = new Error(cuerpo?.error || 'No se pudo verificar el acceso.');
     throw error;
     }
     return { autorizado: true, ...cuerpo };
+  },
+
+  // ── Gestion del banco (solo staff, /api/admin/) ────────────────────
+  //
+  // Todas van con apiFetch (token incluido) y el backend exige is_staff en
+  // CADA llamada (requiere_staff): que la pestaña no se vea sin staff es
+  // comodidad del frontend, la proteccion es el 403 del backend.
+  //
+  // Menos `listarEvaluaciones`, las demas devuelven el detalle completo de la
+  // evaluacion ya actualizado, tal como lo relee el backend despues del
+  // cambio. Eso simplifica la pantalla: un solo setState con la respuesta y
+  // no hay que reconciliar listas ni re-pedir el detalle a mano.
+
+  // GET /api/admin/evaluaciones/  ->  el listado con curso y conteos.
+  listarEvaluacionesAdmin: async () => {
+    const res = await apiFetch(`${ADMIN_URL}evaluaciones/`);
+    return leerJsonAdmin(res);
+  },
+
+  // GET /api/admin/evaluaciones/<id>/  ->  el banco CON las correctas.
+  getEvaluacionAdmin: async (id) => {
+    const res = await apiFetch(`${ADMIN_URL}evaluaciones/${id}/`);
+    return leerJsonAdmin(res);
+  },
+
+  // PUT /api/admin/evaluaciones/<id>/  ->  titulo/puntaje/activa/orden.
+  editarEvaluacionAdmin: async (id, datos) => {
+    const res = await apiFetch(`${ADMIN_URL}evaluaciones/${id}/`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datos),
+    });
+    return leerJsonAdmin(res);
+  },
+
+  // POST /api/admin/evaluaciones/<id>/preguntas/  ->  una pregunta nueva.
+  crearPreguntaAdmin: async (evaluacionId, datos) => {
+    const res = await apiFetch(`${ADMIN_URL}evaluaciones/${evaluacionId}/preguntas/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datos),
+    });
+    return leerJsonAdmin(res);
+  },
+
+  // PUT /api/admin/preguntas/<id>/  ->  texto/contexto/es_larga/orden.
+  editarPreguntaAdmin: async (id, datos) => {
+    const res = await apiFetch(`${ADMIN_URL}preguntas/${id}/`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datos),
+    });
+    return leerJsonAdmin(res);
+  },
+
+  // DELETE /api/admin/preguntas/<id>/  ->  la borra con sus opciones.
+  borrarPreguntaAdmin: async (id) => {
+    const res = await apiFetch(`${ADMIN_URL}preguntas/${id}/`, {
+      method: 'DELETE',
+    });
+    return leerJsonAdmin(res);
+  },
+
+  // POST /api/admin/preguntas/<id>/opciones/  ->  una opcion nueva.
+  // `es_correcta` en true desmarca las demas del backend en la misma
+  // transaccion: una sola correcta es la regla del modelo.
+  crearOpcionAdmin: async (preguntaId, datos) => {
+    const res = await apiFetch(`${ADMIN_URL}preguntas/${preguntaId}/opciones/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datos),
+    });
+    return leerJsonAdmin(res);
+  },
+
+  // PUT /api/admin/opciones/<id>/  ->  texto/orden y (des)marca la correcta.
+  editarOpcionAdmin: async (id, datos) => {
+    const res = await apiFetch(`${ADMIN_URL}opciones/${id}/`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datos),
+    });
+    return leerJsonAdmin(res);
+  },
+
+  // DELETE /api/admin/opciones/<id>/  ->  la borra.
+  borrarOpcionAdmin: async (id) => {
+    const res = await apiFetch(`${ADMIN_URL}opciones/${id}/`, {
+      method: 'DELETE',
+    });
+    return leerJsonAdmin(res);
   },
 };

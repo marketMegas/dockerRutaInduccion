@@ -14,7 +14,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
 from usuarios.permisos import requiere_estudiante
-from .models import UserProgress, Calificacion, Certificado, Course, Module, Lesson, Recurso
+from .models import UserProgress, Calificacion, Certificado, Course, Lesson, Recurso
 
 CARPETA_CERTIFICADOS = 'Certificados_Emitidos'
 
@@ -71,25 +71,24 @@ def _es_imagen_url(video_url):
 
 
 def _serializar_curso(course):
-    """Aplana Course › modules › lessons al contrato que espera el frontend.
+    """Aplana las lecciones del curso al contrato que espera el frontend.
 
-    El frontend trabaja con una lista plana de lecciones (no con módulos),
-    asi que el orden se calcula recorriendo los módulos ordenados y sus
-    lecciones ordenadas, numerandolas de 1 en adelante.
+    El frontend trabaja con una lista plana de lecciones, numeradas de 1 en
+    adelante segun su `order`. Antes las lecciones colgaban de un modulo
+    intermedio; se elimino ese nivel y ahora cuelgan directo del curso.
     """
     lecciones = []
-    for modulo in course.modules.all().order_by('order'):
-        for leccion in modulo.lessons.all().order_by('order'):
-            orden = len(lecciones) + 1
-            lecciones.append({
-                'id': orden,
-                'title': leccion.title,
-                'duration': leccion.duration or '—',
-                'path': '' if orden == 1 else f'/leccion/{orden}',
-                'videoId': _youtube_id(leccion.video_url),
-                'mediaType': 'imagen' if _es_imagen_url(leccion.video_url) else 'video',
-                'content_text': leccion.content_text,
-            })
+    for leccion in course.lessons.all().order_by('order'):
+        orden = len(lecciones) + 1
+        lecciones.append({
+            'id': orden,
+            'title': leccion.title,
+            'duration': leccion.duration or '—',
+            'path': '' if orden == 1 else f'/leccion/{orden}',
+            'videoId': _youtube_id(leccion.video_url),
+            'mediaType': 'imagen' if _es_imagen_url(leccion.video_url) else 'video',
+            'content_text': leccion.content_text,
+        })
 
     total = len(lecciones)
     return {
@@ -120,7 +119,7 @@ def _serializar_curso(course):
 @requiere_estudiante
 @require_http_methods(["GET"])
 def lista_cursos(request):
-    cursos = Course.objects.prefetch_related('modules__lessons', 'recursos').order_by('id')
+    cursos = Course.objects.prefetch_related('lessons', 'recursos').order_by('id')
     return JsonResponse([_serializar_curso(c) for c in cursos], safe=False)
 
 
@@ -129,7 +128,7 @@ def lista_cursos(request):
 def detalle_curso(request, course_id):
     from django.shortcuts import get_object_or_404
     course = get_object_or_404(
-        Course.objects.prefetch_related('modules__lessons', 'recursos'), pk=course_id
+        Course.objects.prefetch_related('lessons', 'recursos'), pk=course_id
     )
     return JsonResponse(_serializar_curso(course))
 

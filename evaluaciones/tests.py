@@ -110,14 +110,15 @@ class ObtenerEvaluacionTest(ConSesion, TestCase):
         self.assertIn('no tiene', respuesta.json()['error'])
 
     def test_evaluacion_inactiva_no_se_sirve(self):
-        # Para que el admin pueda tener el banco nuevo en edicion sin que los
-        # estudiantes lo vean todavia.
-        inactive = crear_evaluacion(self.curso, titulo='Borrador', activa=False)
+        # Un curso tiene UNA sola evaluación (OneToOne): mientras esté
+        # inactiva (borrador en edición en /admin) no se sirve a los
+        # estudiantes, igual que si no existiera.
+        curso = crear_curso('Curso con borrador')
+        crear_evaluacion(curso, titulo='Borrador', activa=False)
 
-        respuesta = self._banco()
+        respuesta = self._banco(curso.id)
 
-        self.assertEqual(respuesta.status_code, 200)
-        self.assertNotEqual(respuesta.json()['id'], inactive.id)
+        self.assertEqual(respuesta.status_code, 404)
 
     def test_curso_inexistente_da_404(self):
         self.assertEqual(self._banco(999999).status_code, 404)
@@ -540,7 +541,7 @@ class AdminEvaluacionesTest(TestCase):
         # La ayuda tiene que decir que las opciones van en otra pantalla.
         self.assertContains(
             self.client.get('/admin/evaluaciones/evaluacion/add/'),
-            'no permite poner opciones en esta misma',
+            'no permite escribir opciones en esta misma',
         )
 
     def test_la_pantalla_de_edicion_abre(self):
@@ -591,6 +592,116 @@ class AdminEvaluacionesTest(TestCase):
         self.assertEqual(respuesta.status_code, 302)
         evaluacion.refresh_from_db()
         self.assertTrue(evaluacion.activa)
+
+    def test_el_desplegable_de_correcta_lista_las_opciones_de_cada_pregunta(self):
+        # Cada pregunta en la pantalla de la evaluación debe poder marcar su
+        # respuesta verdadera entre las opciones ya cargadas, sin salir de ahi.
+        evaluacion = crear_evaluacion(self.curso)
+        pregunta = evaluacion.preguntas_ordenadas[0]
+        correcta = pregunta.opcion_correcta
+
+        html = self.client.get(
+            f'/admin/evaluaciones/evaluacion/{evaluacion.id}/change/'
+        ).content.decode()
+
+        self.assertIn('name="preguntas-0-respuesta_correcta"', html)
+        # La buena viene marcada como seleccionada.
+        self.assertIn(f'value="{correcta.id}" selected', html)
+
+    def test_marcar_otra_correcta_desde_la_pantalla_de_evaluacion(self):
+        # Cambiar la respuesta verdadera desde el desplegable de la pregunta:
+        # la nueva queda marcada y la anterior, desmarcada. Una sola por
+        # pregunta, que es la regla del modelo.
+        self._post_alta(**{'activa': ''})
+        evaluacion = Evaluacion.objects.get(titulo='Evaluación final')
+        pregunta = evaluacion.preguntas_ordenadas[0]
+        self._post_opciones(pregunta, correctas=(0,))
+
+        segunda = pregunta.opciones_ordenadas[1]
+        respuesta = self.client.post(
+            f'/admin/evaluaciones/evaluacion/{evaluacion.id}/change/',
+            {
+                'course': self.curso.id,
+                'titulo': 'Evaluación final',
+                'puntaje_aprobacion': 90,
+                'activa': 'on',
+                'orden': 0,
+                'preguntas-TOTAL_FORMS': 1,
+                'preguntas-INITIAL_FORMS': 1,
+                'preguntas-MIN_NUM_FORMS': 0,
+                'preguntas-MAX_NUM_FORMS': 1000,
+                'preguntas-0-id': pregunta.id,
+                'preguntas-0-evaluacion': evaluacion.id,
+                'preguntas-0-texto': pregunta.texto,
+                'preguntas-0-contexto': '',
+                'preguntas-0-orden': 1,
+                'preguntas-0-respuesta_correcta': segunda.id,
+                '_save': 'Guardar',
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        marcadas = [
+            o.id for o in pregunta.opciones_ordenadas if o.es_correcta
+        ]
+        self.assertEqual(marcadas, [segunda.id])
+
+    def test_activar_y_marcar_correcta_en_un_solo_guardado(self):
+        # El orden dentro de save_related: el mark de la respuesta correcta
+        # corre ANTES de la comprobación de activación. Sin ese orden, activar
+        # y marcar en el mismo guardado seria rechazado, porque la
+        # validación miraria los flags viejos (ninguna correcta).
+        self._post_alta(**{'activa': ''})
+        evaluacion = Evaluacion.objects.get(titulo='Evaluación final')
+        pregunta = evaluacion.preguntas_ordenadas[0]
+        # Opciones sin correcta por ORM: el formset de la pantalla de la
+        # pregunta rechaza guardar un banco donde ninguna esta marcada.
+        primera = Opcion.objects.create(
+            pregunta=pregunta, texto='Entender al cliente', orden=1,
+        )
+        Opcion.objects.create(
+            pregunta=pregunta, texto='Vender sin preguntar', orden=2,
+        )
+        respuesta = self.client.post(
+            f'/admin/evaluaciones/evaluacion/{evaluacion.id}/change/',
+            {
+                'course': self.curso.id,
+                'titulo': 'Evaluación final',
+                'puntaje_aprobacion': 90,
+                'activa': 'on',
+                'orden': 0,
+                'preguntas-TOTAL_FORMS': 1,
+                'preguntas-INITIAL_FORMS': 1,
+                'preguntas-MIN_NUM_FORMS': 0,
+                'preguntas-MAX_NUM_FORMS': 1000,
+                'preguntas-0-id': pregunta.id,
+                'preguntas-0-evaluacion': evaluacion.id,
+                'preguntas-0-texto': pregunta.texto,
+                'preguntas-0-contexto': '',
+                'preguntas-0-orden': 1,
+                'preguntas-0-respuesta_correcta': primera.id,
+                '_save': 'Guardar',
+            },
+        )
+
+        evaluacion.refresh_from_db()
+        primera.refresh_from_db()
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertTrue(evaluacion.activa)
+        self.assertTrue(primera.es_correcta)
+
+    def test_sin_opciones_el_desplegable_de_correcta_sale_vacio(self):
+        # Pregunta recién creada, sin opciones: no hay nada que marcar todavía
+        # y el desplegable lo dice, sin romper el guardado.
+        self._post_alta(**{'activa': ''})
+        evaluacion = Evaluacion.objects.get(titulo='Evaluación final')
+
+        respuesta = self.client.get(
+            f'/admin/evaluaciones/evaluacion/{evaluacion.id}/change/'
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, '(primero cargá las opciones)')
 
     def test_la_pantalla_de_pregunta_explica_el_orden_de_carga(self):
         # El deadlock de arrancar de cero: sin evaluaciones cargadas, el
@@ -742,3 +853,321 @@ class AdminEvaluacionesTest(TestCase):
         self.assertEqual(respuesta.status_code, 200)
         self.assertContains(respuesta, 'sin preguntas')
         self.assertEqual(evaluacion.total_preguntas, 0)
+
+
+class AdminApiTest(ConSesion, TestCase):
+    """La API de gestion que usa la pestaña "Evaluaciones" del sidebar.
+
+    Va con `ConSesion` porque las rutas exigen el token de Firebase; el
+    interruptor que se prueba aca es el `is_staff`, que ConSesion no setea
+    (su alumno es un alumno normal a proposito, que es el caso que tiene
+    que quedar cerrado).
+    """
+
+    base = '/api/admin'
+
+    def setUp(self):
+        super().setUp()
+        self.curso = crear_curso('Curso de la gestion')
+        self.evaluacion = crear_evaluacion(self.curso, activa=False)
+        self.pregunta = self.evaluacion.preguntas_ordenadas[0]
+
+    def _hacer_staff(self):
+        self.alumno.is_staff = True
+        self.alumno.save()
+
+    def _json(self, ruta, metodo, data=None):
+        # Ojo: en GET el "data" del test client son query params, no body;
+        # solo put/post llevan cuerpo.
+        kwargs = dict(content_type='application/json', **self.sesion.header())
+        if metodo == 'get':
+            return self.client.get(ruta, **kwargs)
+        return getattr(self.client, metodo)(
+            ruta, json.dumps(data) if data is not None else None, **kwargs
+        )
+
+    def _detalle(self, evaluacion_id=None):
+        evaluacion_id = evaluacion_id or self.evaluacion.id
+        respuesta = self.get(f'{self.base}/evaluaciones/{evaluacion_id}/')
+        self.assertEqual(respuesta.status_code, 200)
+        return respuesta.json()
+
+    # ── La puerta ─────────────────────────────────────────────────────────
+
+    def test_sin_sesion_es_401(self):
+        self.sin_sesion()
+
+        respuesta = self.get(f'{self.base}/evaluaciones/')
+
+        self.assertEqual(respuesta.status_code, 401)
+
+    def test_un_alumno_sin_staff_es_403(self):
+        for ruta, metodo in (
+            (f'{self.base}/evaluaciones/', 'get'),
+            (f'{self.base}/evaluaciones/{self.evaluacion.id}/', 'get'),
+            (f'{self.base}/evaluaciones/{self.evaluacion.id}/', 'put'),
+            (
+                f'{self.base}/evaluaciones/{self.evaluacion.id}/preguntas/',
+                'post',
+            ),
+            (f'{self.base}/preguntas/{self.pregunta.id}/', 'put'),
+            (f'{self.base}/preguntas/{self.pregunta.id}/', 'delete'),
+            (
+                f'{self.base}/preguntas/{self.pregunta.id}/opciones/',
+                'post',
+            ),
+            (
+                f'{self.base}/opciones/{self.pregunta.opciones_ordenadas[0].id}/',
+                'put',
+            ),
+            (
+                f'{self.base}/opciones/{self.pregunta.opciones_ordenadas[0].id}/',
+                'delete',
+            ),
+        ):
+            with self.subTest(ruta=ruta, metodo=metodo):
+                respuesta = self._json(ruta, metodo, data={} if metodo != 'delete' else None)
+                self.assertEqual(respuesta.status_code, 403)
+                self.assertEqual(respuesta.json()['codigo'], 'sin_staff')
+
+    # ── Lectura ───────────────────────────────────────────────────────────
+
+    def test_staff_ve_la_lista_y_el_detalle_con_las_correctas(self):
+        self._hacer_staff()
+
+        lista = self.get(f'{self.base}/evaluaciones/').json()
+        self.assertEqual(
+            [e['id'] for e in lista['evaluaciones']], [self.evaluacion.id]
+        )
+        fila = lista['evaluaciones'][0]
+        self.assertEqual(fila['course_title'], 'Curso de la gestion')
+        self.assertEqual(fila['total_preguntas'], 2)
+
+        detalle = self._detalle()
+        primera = detalle['preguntas'][0]['opciones'][0]
+        # A diferencia del quiz del estudiante, aca la correcta SI viene
+        # marcada: es la pantalla con la que se gestiona el banco.
+        self.assertTrue(primera['es_correcta'])
+        self.assertEqual(detalle['course_id'], self.curso.id)
+
+    # ── Editar la evaluacion ──────────────────────────────────────────────
+
+    def test_editar_campos_basicos(self):
+        self._hacer_staff()
+
+        respuesta = self._json(
+            f'{self.base}/evaluaciones/{self.evaluacion.id}/',
+            'put',
+            {'titulo': 'Examen final', 'puntaje_aprobacion': 80, 'orden': 3},
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.evaluacion.refresh_from_db()
+        self.assertEqual(self.evaluacion.titulo, 'Examen final')
+        self.assertEqual(self.evaluacion.puntaje_aprobacion, 80)
+        self.assertEqual(self.evaluacion.orden, 3)
+
+    def test_activar_con_banco_completo_si_se_puede(self):
+        # crear_evaluacion deja cada pregunta con una correcta, asi que la
+        # activacion tiene que pasar.
+        self._hacer_staff()
+
+        respuesta = self._json(
+            f'{self.base}/evaluaciones/{self.evaluacion.id}/',
+            'put',
+            {'activa': True},
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.evaluacion.refresh_from_db()
+        self.assertTrue(self.evaluacion.activa)
+
+    def test_activar_con_banco_incompleto_no_se_puede(self):
+        self._hacer_staff()
+        self.pregunta.opciones.update(es_correcta=False)
+
+        respuesta = self._json(
+            f'{self.base}/evaluaciones/{self.evaluacion.id}/',
+            'put',
+            {'activa': True},
+        )
+
+        self.assertEqual(respuesta.status_code, 400)
+        self.assertIn('correcta', respuesta.json()['error'])
+        self.evaluacion.refresh_from_db()
+        self.assertFalse(self.evaluacion.activa)
+
+    def test_puntaje_fuera_de_rango_no_se_puede(self):
+        self._hacer_staff()
+
+        respuesta = self._json(
+            f'{self.base}/evaluaciones/{self.evaluacion.id}/',
+            'put',
+            {'puntaje_aprobacion': 150},
+        )
+
+        self.assertEqual(respuesta.status_code, 400)
+
+    # ── Preguntas ─────────────────────────────────────────────────────────
+
+    def test_crear_pregunta_en_evaluacion_inactiva(self):
+        self._hacer_staff()
+
+        respuesta = self._json(
+            f'{self.base}/evaluaciones/{self.evaluacion.id}/preguntas/',
+            'post',
+            {'texto': '¿Qué es la venta consultiva?', 'orden': 9},
+        )
+
+        self.assertEqual(respuesta.status_code, 201)
+        self.assertEqual(self.evaluacion.total_preguntas, 3)
+        nueva = Pregunta.objects.get(texto='¿Qué es la venta consultiva?')
+        self.assertEqual(nueva.orden, 9)
+        self.assertEqual(nueva.evaluacion, self.evaluacion)
+
+    def test_crear_pregunta_en_evaluacion_activa_no_se_puede(self):
+        # Dejaria el quiz activo con una pregunta sin opciones: el estudiante
+        # se encontraria un 409 sin poder hacer nada.
+        self._hacer_staff()
+        self.evaluacion.activa = True
+        self.evaluacion.save()
+
+        respuesta = self._json(
+            f'{self.base}/evaluaciones/{self.evaluacion.id}/preguntas/',
+            'post',
+            {'texto': 'Pregunta tardia'},
+        )
+
+        self.assertEqual(respuesta.status_code, 400)
+        self.assertEqual(self.evaluacion.total_preguntas, 2)
+
+    def test_borrar_pregunta_en_evaluacion_activa_no_se_puede(self):
+        self._hacer_staff()
+        self.evaluacion.activa = True
+        self.evaluacion.save()
+
+        respuesta = self._json(
+            f'{self.base}/preguntas/{self.pregunta.id}/', 'delete'
+        )
+
+        self.assertEqual(respuesta.status_code, 400)
+        self.assertTrue(Pregunta.objects.filter(pk=self.pregunta.id).exists())
+
+    def test_borrar_pregunta_en_inactiva_saca_sus_opciones(self):
+        self._hacer_staff()
+        pregunta_id = self.pregunta.id
+
+        respuesta = self._json(
+            f'{self.base}/preguntas/{pregunta_id}/', 'delete'
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertFalse(Pregunta.objects.filter(pk=pregunta_id).exists())
+        # Y la evaluacion que devuelve ya no la cuenta.
+        self.assertEqual(respuesta.json()['evaluacion']['total_preguntas'], 1)
+
+    def test_texto_de_pregunta_vacio_no_se_puede(self):
+        self._hacer_staff()
+
+        respuesta = self._json(
+            f'{self.base}/evaluaciones/{self.evaluacion.id}/preguntas/',
+            'post',
+            {'texto': '   '},
+        )
+
+        self.assertEqual(respuesta.status_code, 400)
+        self.assertEqual(self.evaluacion.total_preguntas, 2)
+
+    # ── Opciones ──────────────────────────────────────────────────────────
+
+    def test_agregar_correcta_desmarca_la_anterior(self):
+        self._hacer_staff()
+        anterior = self.pregunta.opcion_correcta
+        segunda = self.pregunta.opciones_ordenadas[1]
+
+        respuesta = self._json(
+            f'{self.base}/preguntas/{self.pregunta.id}/opciones/',
+            'post',
+            {'texto': 'Opcion nueva correcta', 'es_correcta': True},
+        )
+
+        self.assertEqual(respuesta.status_code, 201)
+        anterior.refresh_from_db()
+        self.assertFalse(anterior.es_correcta)
+        # Y en el detalle que devuelve, la pregunta queda con una sola.
+        correctas = [
+            o for o in respuesta.json()['preguntas'][0]['opciones']
+            if o['es_correcta']
+        ]
+        self.assertEqual(len(correctas), 1)
+        self.assertEqual(correctas[0]['texto'], 'Opcion nueva correcta')
+
+    def test_marcar_correcta_desde_otra_opcion(self):
+        self._hacer_staff()
+        segunda = self.pregunta.opciones_ordenadas[1]
+
+        respuesta = self._json(
+            f'{self.base}/opciones/{segunda.id}/',
+            'put',
+            {'es_correcta': True},
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        correctas = [
+            o['id'] for o in respuesta.json()['preguntas'][0]['opciones']
+            if o['es_correcta']
+        ]
+        self.assertEqual(correctas, [segunda.id])
+
+    def test_desmarcar_la_unica_correcta_de_una_activa_no_se_puede(self):
+        self._hacer_staff()
+        self.evaluacion.activa = True
+        self.evaluacion.save()
+        correcta = self.pregunta.opcion_correcta
+
+        respuesta = self._json(
+            f'{self.base}/opciones/{correcta.id}/',
+            'put',
+            {'es_correcta': False},
+        )
+
+        self.assertEqual(respuesta.status_code, 400)
+        correcta.refresh_from_db()
+        self.assertTrue(correcta.es_correcta)
+
+    def test_borrar_la_unica_correcta_de_una_activa_no_se_puede(self):
+        self._hacer_staff()
+        self.evaluacion.activa = True
+        self.evaluacion.save()
+        correcta = self.pregunta.opcion_correcta
+
+        respuesta = self._json(
+            f'{self.base}/opciones/{correcta.id}/', 'delete'
+        )
+
+        self.assertEqual(respuesta.status_code, 400)
+        self.assertTrue(Opcion.objects.filter(pk=correcta.id).exists())
+
+    def test_borrar_opcion_de_inactiva_si_se_puede(self):
+        self._hacer_staff()
+        correcta = self.pregunta.opcion_correcta
+        opcion_id = correcta.id
+
+        respuesta = self._json(
+            f'{self.base}/opciones/{opcion_id}/', 'delete'
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertFalse(Opcion.objects.filter(pk=opcion_id).exists())
+
+    def test_texto_de_opcion_vacio_no_se_puede(self):
+        self._hacer_staff()
+
+        respuesta = self._json(
+            f'{self.base}/preguntas/{self.pregunta.id}/opciones/',
+            'post',
+            {'texto': ''},
+        )
+
+        self.assertEqual(respuesta.status_code, 400)
+        self.assertEqual(self.pregunta.opciones.count(), 3)

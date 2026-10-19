@@ -64,7 +64,7 @@ const renderizarPDF = async (element) => {
 
 const CertificadoGenerator = forwardRef(({
     nombreUsuario,
-    curso = 'Inducción Comercial de Ventas',
+    curso,
     fecha,
     score,
     total,
@@ -224,29 +224,14 @@ const CertificadoGenerator = forwardRef(({
                         </p>
                     </div>
 
-                    {/* FOOTER: Firmas y Logos Inferiores */}
-                    <div className="flex items-end justify-between w-full mt-auto mb-4 px-8">
-                        {/* Logo Izquierdo (GASMAX) */}
-                        <div className="flex flex-col items-center justify-center h-20">
-                            <img src="https://i.imgur.com/MRtZVE1.png" alt="GASMAX" className="h-16 object-contain" crossOrigin="anonymous" />
-                        </div>
-
-                        {/* Firma Central */}
-                        <div className="flex flex-col items-center w-80">
-                            <div className="w-full border-b-[3px] border-[#f6811e] mb-3"></div>
-                            <span className="text-xl font-black text-[#5fbd44] uppercase tracking-wide">
-                                NASLY MARTINEZ
-                            </span>
-                            <span className="text-lg font-medium text-[#50634b]">
-                                Líder de Gestión Humana
-                            </span>
-                        </div>
-
-                        {/* Logo Derecho (G MAX) */}
-                        <div className="flex flex-col items-center justify-center h-20">
-                            <img src="https://i.imgur.com/0lJYiHW.png" alt="G MAX" className="h-16 object-contain" crossOrigin="anonymous" />
-                        </div>
-                    </div>
+                    {/* FOOTER: vacio a proposito.
+                        Se sacaron los dos logos (GASMAX y G MAX) y tambien la
+                        firma NASLY MARTINEZ: el bloque de firma se desbordaba
+                        de la caja blanca y el nombre quedaba sobre la franja
+                        verde del fondo (y el subtitulo ni siquiera entraba en
+                        el lienzo). Sin hijo con contenido, `justify-between`
+                        reparte entre header y cuerpo, que con flex-1 absorbe
+                        el espacio. */}
 
                 </div>
             </div>
