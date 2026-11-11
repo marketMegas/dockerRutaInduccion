@@ -1,0 +1,48 @@
+SESIONES IMPORTANTES
+
+1. CONECTE EL FORM DE MEGAS.COM AL CORREO info@megas.co
+
+opencode -s ses_f5098c8aeffeTRWBsOeyZSVq5D
+                                   ▄     
+  █▀▀█ █▀▀█ █▀▀█ █▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█
+  █  █ █  █ █▀▀▀ █  █ █    █  █ █  █ █▀▀▀
+  ▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀
+
+  Session   Agregar botón CREG 080 al header de index.html
+  Continue  opencode -s ses_f5098c8aeffeTRWBsOeyZSVq5D
+
+
+2. cd "C:\Users\DESARROLLO MEGAS\Documents\megasReboot\megasReady\readyMegas\desplegado"
+.\subir.ps1
+
+SUBIR EL listado de files contenido en subir.ps1
+
+
+3. Sesión Plan para copiar Docker 
+
+opencode --session ses_f3a296d59ffeAz6LvhgiA15etv
+
+4. incorporando modulo EVALUACIONES al backend no existía aun verificar que sea  ruta C:\Users\DESARROLLO MEGAS\Documents\dockerRutaInduccionMEJORADO\universidad-g-max - copiaENSAYANDO
+
+
+                                   ▄     
+  █▀▀█ █▀▀█ █▀▀█ █▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█
+  █  █ █  █ █▀▀▀ █  █ █    █  █ █  █ █▀▀▀
+  ▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀
+
+  Session   Revisión de archivo backend
+  Continue  opencode -s ses_f0d3242ffffeEjwtHFDEpxI22c
+
+
+
+ALISTANDO PARA EL DEPLOY 5 oct
+                                   ▄     
+  █▀▀█ █▀▀█ █▀▀█ █▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█
+  █  █ █  █ █▀▀▀ █  █ █    █  █ █  █ █▀▀▀
+  ▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀
+
+  Session   Consulta sobre lectura de archivos
+  Continue  opencode -s ses_ef33c458affeJKnMnZ234k2rU4
+
+
+

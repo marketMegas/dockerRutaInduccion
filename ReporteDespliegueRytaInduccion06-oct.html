@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Reporte de Despliegue — Ruta de Inducción (06-oct)</title>
+<style>
+  :root{
+    --accent:#e8600c; --accent2:#1f6feb; --code:#f6f8fa; --border:#d0d7de; --text:#24292f;
+    --muted:#57606a; --headbg:#0d2b45;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    font-family:'Segoe UI',Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    color:var(--text); font-size:10.5pt; line-height:1.5; margin:0; padding:0;
+  }
+  @page{
+    size: A4; margin: 16mm 14mm 18mm 14mm;
+    @bottom-right{ content: "Página " counter(page) " de " counter(pages); font-size:8pt; color:#888; }
+    @bottom-left{ content: "ReporteDespliegueRytaInduccion06-oct"; font-size:8pt; color:#888; }
+  }
+  .cover{ text-align:left; border:1px solid var(--border); border-top:6px solid var(--accent); padding:28px 30px; margin-bottom:28px; page-break-after:always; }
+  .cover h1{ font-size:24pt; margin:0 0 6px 0; color:var(--headbg); }
+  .cover .sub{ font-size:11pt; color:var(--muted); margin-bottom:18px; }
+  .cover table{ font-size:9.5pt; border-collapse:collapse; }
+  .cover table td{ padding:2px 12px 2px 0; vertical-align:top; }
+  .cover table td.k{ color:var(--muted); white-space:nowrap; }
+  h1{ font-size:16pt; color:var(--headbg); border-bottom:2px solid var(--accent); padding-bottom:4px; margin:26px 0 10px; }
+  h2{ font-size:12.5pt; color:var(--headbg); margin:20px 0 6px; }
+  h3{ font-size:10.5pt; margin:14px 0 4px; color:#1a3550; }
+  p{ margin:5px 0; }
+  ul,ol{ margin:6px 0 10px; padding-left:22px; }
+  li{ margin:3px 0; }
+  code{ font-family:Consolas,'Cascadia Mono',monospace; font-size:9pt; background:var(--code); padding:1px 4px; border-radius:3px; color:#c4365e; }
+  pre{ background:var(--code); border:1px solid var(--border); border-radius:6px; padding:10px 12px; overflow:auto; font-family:Consolas,'Cascadia Mono',monospace; font-size:8.8pt; line-height:1.45; white-space:pre; }
+  pre code{ background:none; padding:0; color:inherit; }
+  table{ border-collapse:collapse; width:100%; margin:8px 0 12px; font-size:9pt; }
+  th{ background:var(--headbg); color:#fff; text-align:left; padding:5px 8px; border:1px solid #0d2b45; }
+  td{ padding:4px 8px; border:1px solid var(--border); vertical-align:top; }
+  tr:nth-child(even) td{ background:#f6f8fa; }
+  .ok{ color:#1a7f37; font-weight:600; }
+  .ko{ color:#cf222e; font-weight:600; }
+  .warn{ color:#9a6700; font-weight:600; }
+  .note{ background:#fff8e6; border-left:4px solid #d4a72c; padding:8px 12px; margin:10px 0; font-size:9.5pt; }
+  .tip{ background:#eef6ee; border-left:4px solid #1a7f37; padding:8px 12px; margin:10px 0; font-size:9.5pt; }
+  .danger{ background:#ffeef0; border-left:4px solid #cf222e; padding:8px 12px; margin:10px 0; font-size:9.5pt; }
+  .box{ border:1px solid var(--border); border-radius:6px; padding:8px 12px; margin:8px 0; }
+  hr{ border:0; border-top:1px solid var(--border); margin:18px 0; }
+  .small{ font-size:8.5pt; color:var(--muted); }
+  h1,h2,h3{ page-break-after:avoid; }
+  pre,table,.box,.note,.tip,.danger{ page-break-inside:avoid; }
+  .toc li{ margin:2px 0; }
+  .toc a{ color:var(--accent2); text-decoration:none; }
+</style>
+</head>
+<body>
+
+<!-- ===================================================================== -->
+<!-- PORTADA                                                                -->
+<!-- ===================================================================== -->
+<section class="cover">
+  <h1>Reporte de Despliegue</h1>
+  <div class="sub">Ruta de Inducción (Ruta de Inducción / universidad-g-max) — Stack nuevo Django + React</div>
+  <table>
+    <tr><td class="k">Fecha del despliegue</td><td>06 de octubre de 2026</td></tr>
+    <tr><td class="k">Documento</td><td>ReporteDespliegueRytaInduccion06-oct</td></tr>
+    <tr><td class="k">Propósito</td><td>Manual de documentación del despliegue, para un programador ajeno al proyecto</td></tr>
+    <tr><td class="k">Rama / commit</td><td><code>segundaSimple</code> — HEAD <code>7da92ae</code></td></tr>
+    <tr><td class="k">Servidor (VPS)</td><td><code>root@177.7.49.5</code> — AlmaLinux 9.7 — Hostinger <code>srv1630508.hstgr.cloud</code></td></tr>
+    <tr><td class="k">Dominio</td><td><code>https://www.megas.com.co</code> (también responde el apex <code>megas.com.co</code>)</td></tr>
+    <tr><td class="k">Alcance</td><td>Despliegue del stack nuevo (backend Django + frontend React + auth Firebase) en paralelo al stack antiguo</td></tr>
+    <tr><td class="k">Estado final</td><td><span class="ok">TODAS las rutas verificadas responden OK</span> — despliegue operativo</td></tr>
+    <tr><td class="k">Secretos</td><td>Este documento NO contiene credenciales sensibles; cita solo nombres de variables</td></tr>
+  </table>
+</section>
+
+<!-- ===================================================================== -->
+<!-- INDICE                                                                 -->
+<!-- ===================================================================== -->
+<h1>Índice</h1>
+<ol class="toc">
+  <li><a href="#s1">Resumen ejecutivo</a></li>
+  <li><a href="#s2">Contexto del proyecto</a></li>
+  <li><a href="#s3">Inventario de infraestructura resultante</a></li>
+  <li><a href="#s4">Modelo de tráfico (cómo llega una petición)</a></li>
+  <li><a href="#s5">Trazabilidad: cambios de código (commits)</a></li>
+  <li><a href="#s6">Bitácora del despliegue fase por fase</a></li>
+  <li><a href="#s7">Verificación end-to-end (resultados medidos)</a></li>
+  <li><a href="#s8">Runbook de operación (para el próximo programador)</a></li>
+  <li><a href="#s9">Mapa de URLs y endpoints</a></li>
+  <li><a href="#s10">Configuración requerida (.env.produccion)</a></li>
+  <li><a href="#s11">Hallazgos del entorno y trampas conocidas</a></li>
+  <li><a href="#s12">Estado final de los datos (DB)</a></li>
+  <li><a href="#s13">Pendientes para el equipo / usuario</a></li>
+  <li><a href="#s14">Apéndices</a></li>
+</ol>
+<div class="note">Convención de rutas: <code>www.megas.com.co</code> es el dominio canónico (redirige desde <code>megas.com.co</code> y desde http).
+En todo el documento, los comandos sin usuario explícito se ejecutan como <code>root</code> en el VPS <code>177.7.49.5</code>.</div>
+
+<!-- ===================================================================== -->
+<h1 id="s1">1. Resumen ejecutivo</h1>
+<!-- ===================================================================== -->
+<p>Durante el 06-oct-2026 se desplegó en el VPS el <b>stack nuevo</b> de la Ruta de Inducción, correspondiente a la rama
+<code>segundaSimple</code> del repositorio <code>github.com/marketMegas/dockerRutaInduccion</code>. El stack nuevo reemplaza a nivel de
+dominio la funcionalidad del sitio <code>/rutainduccion/</code> (SPA React + API Django con administración) sin tocar el stack antiguo
+(<code>/rutadeexpertos/</code>, que sigue activo).</p>
+
+<h2>Resultado (verificado el mismo día)</h2>
+<table>
+  <tr><th>Ruta pública</th><th>Resultado</th><th>Responsable</th></tr>
+  <tr><td><code>/rutainduccion/</code> (SPA React)</td><td class="ok">200</td><td>Frontend nuevo (contenedor <code>induccion-megas-frontend</code>, 5138)</td></tr>
+  <tr><td><code>/api/*</code> (API Django)</td><td class="ok">200</td><td>Backend nuevo (<code>ruta-induccion-backend</code>, 8001)</td></tr>
+  <tr><td><code>/admin/</code> (panel Django)</td><td class="ok">200</td><td>Backend nuevo (8001)</td></tr>
+  <tr><td><code>/static/*</code> (estáticos Django/WhiteNoise)</td><td class="ok">200</td><td>Backend nuevo (8001)</td></tr>
+  <tr><td><code>/rutadeexpertos/</code></td><td class="ok">200</td><td>Stack antiguo (5137 / 8000) — no modificado</td></tr>
+  <tr><td><code>http://.../*</code></td><td class="ok">301 → https</td><td>nginx del host (puerto 80)</td></tr>
+</table>
+
+<h2>Decisión de arquitectura tomada en el día</h2>
+<ul>
+  <li>Servir mobiliario nuevo y viejo en paralelo desde el mismo VPS y el mismo dominio, conmutado por prefijo de URL.</li>
+  <li>Los puertos de los contenedores nuevos se publicaron <b>solo en loopback</b> (<code>127.0.0.1</code>); el TLS lo termina
+  OpenLiteSpeed (443) y el redirect http→https lo hace nginx (80). Nunca exponer 5137/5138/8000/8001 al exterior.</li>
+  <li>Base de datos restaurada desde el backup <code>db.sqlite3.bak-antes-borrar-autoglp</code> (la más completa).</li>
+  <li>El mecanismo efectivo de ruteo/proxy en este servidor resultó ser el bloque <code>rewrite</code> con <code>[P]</code> del
+  <code>.htaccess</code> (no los <code>context proxy</code> de LiteSpeed; ver sección 6.F y 11).</li>
+</ul>
+
+<!-- ===================================================================== -->
+<h1 id="s2">2. Contexto del proyecto</h1>
+<!-- ===================================================================== -->
+
+<h2>2.1 Repositorio</h2>
+<ul>
+  <li>Ruta local (Windows): <code>C:\Users\DESARROLLO MEGAS\Documents\dockerRutaInduccionMEJORADO\universidad-g-max - copiaENSAYANDO</code></li>
+  <li>Rama productiva: <code>segundaSimple</code> — remote: <code>https://github.com/marketMegas/dockerRutaInduccion.git</code></li>
+  <li>Commit desplegado: <code>7da92ae</code> (último de la serie del día; ver sección 5).</li>
+  <li>El mismo repositorio está clonado en el VPS en <code>/root/induccion-megas</code> (misma rama).</li>
+</ul>
+
+<h2>2.2 Stack del proyecto</h2>
+<table>
+  <tr><th>Capa</th><th>Tecnología</th><th>Detalle</th></tr>
+  <tr><td>Backend</td><td>Django (Python 3.12-slim)</td><td>Apps: <code>usuarios</code>, <code>courses</code>, <code>evaluaciones</code>, <code>foro</code>. WSGI con gunicorn en <code>:8000</code>.</td></tr>
+  <tr><td>Frontend</td><td>React + Vite (Node 20) sobre nginx:alpine</td><td>SPA compilado con <code>base '/rutainduccion/'</code>, bundle <code>assets/index-YccBd-tK.js</code>.</td></tr>
+  <tr><td>Auth</td><td>Firebase Authentication (Email/Password)</td><td>Config embebida en <code>frontend/src/config/firebase.js</code>; backend audita los ID tokens con el SDK de Firebase Admin.</td></tr>
+  <tr><td>Autorización</td><td>Whitelist en la DB de Django</td><td><code>usuarios/permisos.py::usuario_autorizado(email)</code> contra <code>auth_user</code>.</td></tr>
+  <tr><td>DB</td><td>SQLite</td><td>Archivo <code>/root/induccion-megas/data/db.sqlite3</code> (montado por volumen en el backend).</td></tr>
+  <tr><td>Proxy / TLS</td><td>OpenLiteSpeed 1.8.5 (443) + nginx del host (80)</td><td>Ver modelo de tráfico (sección 4).</td></tr>
+</table>
+
+<h2>2.3 Árbol de URLs (rutas de la SPA)</h2>
+<ul>
+  <li><b>Públicas</b>: <code>/rutainduccion/login</code>, <code>/rutainduccion/register</code>, <code>/rutainduccion/foro</code>, recursos.</li>
+  <li><b>Sesión de Firebase</b> (sin alta en Django): foro, recursos — <code>AuthenticatedRoute</code>.</li>
+  <li><b>Sesión de Firebase + alta en Django</b> (whitelist): cursos, lecciones, evaluaciones, certificado, calificaciones — <code>ProtectedRoute</code>.</li>
+  <li>El panel de administración <code>/admin/</code> es el admin estándar de Django (independiente de Firebase).</li>
+</ul>
+
+<!-- ===================================================================== -->
+<h1 id="s3">3. Inventario de infraestructura resultante</h1>
+<!-- ===================================================================== -->
+
+<h2>3.1 Sistema operativo y servicios base (VPS)</h2>
+<table>
+  <tr><th>Componente</th><th>Versión / detalle</th></tr>
+  <tr><td>SO</td><td>AlmaLinux 9.7</td></tr>
+  <tr><td>Docker</td><td>Client Docker 29.4.1; binario de compose reportado como "Docker Compose version v5.1.3" (no estándar; funciona con <code>--env-file</code>)</td></tr>
+  <tr><td>OpenLiteSpeed</td><td>LiteSpeed/1.8.5 Open — escucha en <code>:443</code></td></tr>
+  <tr><td>nginx (sistema)</td><td>nginx/1.20.1 — escucha en <code>:80</code> (único dueño del 80)</td></tr>
+  <tr><td>Firewall</td><td>firewalld — solo 80/443 abiertos al exterior (los puertos Docker quedan en loopback)</td></tr>
+</table>
+
+<h2>3.2 Contenedores (estado final)</h2>
+<table>
+  <tr><th>Contenedor</th><th>Imagen</th><th>Publicación</th><th>Restart</th><th>Stack</th></tr>
+  <tr><td><code>ruta-induccion-backend</code></td><td><code>induccion-megas-backend:8de9757</code></td><td><code>127.0.0.1:8001→8000</code></td><td>unless-stopped</td><td>Nuevo</td></tr>
+  <tr><td><code>induccion-megas-frontend</code></td><td><code>induccion-megas-frontend:7da92ae</code></td><td><code>127.0.0.1:5138→80</code></td><td>unless-stopped</td><td>Nuevo</td></tr>
+  <tr><td><code>universidadg-max-frontend-1</code></td><td><code>universidadg-max-frontend</code></td><td><code>0.0.0.0:5137→80</code></td><td>no</td><td>Antiguo (rutadeexpertos)</td></tr>
+  <tr><td><code>universidadg-max-backend-1</code></td><td><code>universidadg-max-backend</code></td><td><code>0.0.0.0:8000→8000</code></td><td>no</td><td>Antiguo (rutadeexpertos)</td></tr>
+</table>
+
+<h2>3.3 Imágenes Docker disponibles (importante para rollback)</h2>
+<table>
+  <tr><th>Imagen</th><th>Antigüedad</th><th>Rollback</th></tr>
+  <tr><td><code>induccion-megas-frontend:7da92ae</code></td><td>6-oct</td><td>nueva (ok)</td></tr>
+  <tr><td><code>induccion-megas-backend:8de9757</code></td><td>6-oct</td><td>nueva (ok)</td></tr>
+  <tr><td><code>induccion-megas-backend:b3d27e5</code></td><td>6-oct</td><td>build intermedio</td></tr>
+  <tr><td><code>induccion-megas-backend:latest</code></td><td>agosto</td><td><span class="warn">imagen vieja del stack nuevo</span> (no usar como referente de "último")</td></tr>
+  <tr><td><code>induccion-megas-frontend:latest</code></td><td>agosto</td><td>imagen vieja del stack nuevo</td></tr>
+  <tr><td><code>universidadg-max-backend</code>/<code>frontend</code></td><td>agosto</td><td>stack antiguo (rutadeexpertos)</td></tr>
+</table>
+<div class="danger">En este proyecto el tag <code>:latest</code> NO es la última versión: las imágenes se etiquetan por commit
+(<code>APP_VERSION</code>). Un <code>docker compose up</code> sin <code>APP_VERSION</code> exportada re-cae a <code>:latest</code> (vieja).</div>
+
+<h2>3.4 Red Docker y datos persistentes</h2>
+<ul>
+  <li>Red: <code>induccion-megas_default</code> (creada por el proyecto compose fijo <code>name: induccion-megas</code>). El backend responde en
+  la red interna como <code>backend:8000</code> (usado por el nginx del contenedor frontend).</li>
+  <li>Datos del backend (volúmenes bind, viven FUERA del contenedor y del repo):</li>
+</ul>
+<pre>
+/root/induccion-megas/data/db.sqlite3      # base de datos SQLite productiva
+/root/induccion-megas/media/               # certificados PDF emitidos
+            └── Certificados_Emitidos/     # 4 PDFs (06-oct)
+</pre>
+
+<h2>3.5 Backups generados durante el despliegue</h2>
+<pre>
+/root/backups/pre-deploy-20261006-134248/
+   ├── db.sqlite3-live-autoglp               # backup de la DB VIVA antes del cambio
+   ├── .env.produccion                       # config productiva previa
+   └── media/Certificados_Emitidos/
+        ├── Certificado_Ga_BemCjWm.pdf
+        └── Certificado_juan.pdf
+
+Otros backups puntuales creados en el día:
+   /root/induccion-megas/db.sqlite3.bak-antes-borrar-autoglp     # base restaurada (fuente)
+   /root/induccion-megas/db.sqlite3.bak-antes-evaluaciones       # alternativa descartada
+   /usr/local/lsws/conf/vhosts/www.megas.com.co/vhost.conf.pre-deploy.20261006-140332
+   /home/www.megas.com.co/public_html/.htaccess.pre-deploy.*
+   /etc/nginx/nginx.conf.pre-deploy.*
+</pre>
+
+<!-- ===================================================================== -->
+<h1 id="s4">4. Modelo de tráfico (cómo llega una petición)</h1>
+<!-- ===================================================================== -->
+
+<pre>
+Cliente / Navegador
+   │   http://...                              https://www.megas.com.co/...
+   ▼                                          ▼
+ nginx del HOST:80                      OpenLiteSpeed :443  (cert Let's Encrypt megas.com.co)
+ │  location / → 301 https://www.megas.com.co$request_uri      │
+ └ /.well-known/acme-challenge/ → webroot                      │ vhost: liteSpeed resuelve por Host → vhost.conf
+                                                               │ rewrite { autoLoadHtaccess 1 } + .htaccess [P]
+                                                               ▼
+                                              ┌──────────────────────────────────────────────┐
+                                              │  .htaccess (rewrite con proxy [P])            │
+                                              │  /rutainduccion/*  → DockerFrontend_Induccion │  127.0.0.1:5138
+                                              │  /rutadeexpertos/* → dockerFrontend           │  127.0.0.1:5137
+                                              │  /api/* /admin/* /static/*
+                                              │                    → dockerBackend_Induccion  │  127.0.0.1:8001
+                                              └──────────────────────────────────────────────┘
+                                                               ▼
+                                           contenedor frontend (nginx:alpine :80)
+                                            ├─ /rutainduccion/*  → SPA compilada (try_files / index.html)
+                                            └─ /api/* /admin/* /static/* → http://backend:8000  (red interna docker)
+                                                               ▼
+                                           contenedor backend Django (gunicorn :8000)
+                                            └─ WhiteNoise /static; migraciones; SQLite /app/db.sqlite3
+</pre>
+
+<h2>4.1 Puntos clave del modelo</h2>
+<ul>
+  <li><b>Puerto 80</b>: solo nginx del sistema; redirige todo a https (301 al dominio canónico). El listener :80 de LiteSpeed quedó
+  inactivo (nginx se quedó con el bind).</li>
+  <li><b>Puerto 443</b>: OpenLiteSpeed con dos vhosts (<code>www.megas.com.co</code> y <code>megas.com.co</code>) que comparten el mismo
+  <code>docRoot</code> (<code>/home/www.megas.com.co/public_html</code>).</li>
+  <li><b>El ruteo efectivo son los rewrites <code>[P]</code> del <code>.htaccess</code></b> (auto-cargado, sin reinicio de LiteSpeed).
+  Los <code>context proxy</code> declarados en los vhost.conf (se añadieron en el día, ver 6.F) <b>no dispararon</b> en esta instalación;
+  por eso la solución real quedó en el <code>.htaccess</code>.</li>
+  <li>El <code>.htaccess</code> es compartido por ambos vhost (mismo public_html); al ser <code>autoLoadHtaccess 1</code> y leerse en vivo,
+  los cambios se aplican sin reiniciar LiteSpeed.</li>
+  <li>Los contenedores nuevos NO se exponen: LiteSpeed/nginx del host los alcanzan por <code>127.0.0.1</code>. Los contenedores viejos
+  (rutadeexpertos) sí publican en <code>0.0.0.0</code>, pero el firewall solo deja pasar 80/443.</li>
+  <li><b>X-Forwarded-Proto</b>: el proxy de LiteSpeed envía <code>X-Forwarded-Proto: https</code> y <code>X-Forwarded-Host</code>
+  al backend (verificado con sonda). Django lo honra con <code>SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO','https')</code>,
+  así los correos y certificados generan URLs https.</li>
+</ul>
+
+<div class="note">El contenedor frontend tiene su PROPIO <code>nginx.conf</code> (archivo <code>nginx.conf</code> en la raíz del repo) que,
+además de servir la SPA, vuelve a proxear <code>/api/</code>, <code>/admin/</code> y <code>/static/</code> hacia <code>backend:8000</code>
+por la red interna. Es el "plan B": si algún día LiteSpeed apunta el frontend delante de todo, el proxy interno sigue funcionando.
+Actualmente la entrada es LiteSpeed → <code>.htaccess [P]</code> → cada contenedor.</div>
+
+<!-- ===================================================================== -->
+<h1 id="s5">5. Trazabilidad: cambios de código (commits)</h1>
+<!-- ===================================================================== -->
+
+<p>Hoy se crearon y pushearon a <code>segundaSimple</code> los siguientes commits (en orden cronológico; HEAD final <code>7da92ae</code>):</p>
+
+<table>
+  <tr><th>Commit</th><th>Archivos clave</th><th>Qué cambió y por qué</th></tr>
+  <tr>
+    <td><code>ee5d6cf</code></td>
+    <td><code>filesParaDeploy/docker-compose.prod.yml</code></td>
+    <td>Backend: <code>container_name: ruta-induccion-backend</code> y puerto <code>127.0.0.1:8001:8000</code> (en vez de <code>expose</code>).
+    Frontend: puerto <code>127.0.0.1:5138:80</code>. Se retiró del frontend el bind de <code>media</code> (los certificados deben servir
+    desde el backend).</td>
+  </tr>
+  <tr>
+    <td><code>b3d27e5</code></td>
+    <td><code>filesParaDeploy/docker-compose.prod.yml</code></td>
+    <td><code>build: context: ..</code> para ambos servicios: el Dockerfile necesita la raíz del repo (backend copia <code>.</code>,
+    frontend copia <code>frontend/</code>).</td>
+  </tr>
+  <tr>
+    <td><code>8de9757</code></td>
+    <td><code>filesParaDeploy/docker-compose.prod.yml</code></td>
+    <td><code>name: induccion-megas</code> a nivel de proyecto compose: fuerza la red <code>induccion-megas_default</code>, que ya
+    existía en el VPS (huérfana del intento anterior). Reutilizarla evita que compose cree una red nueva y deje frontend y backend aislados.</td>
+  </tr>
+  <tr>
+    <td><code>7da92ae</code></td>
+    <td><code>frontend/src/pages/{LoginPage,RegisterPage,DashboardPage}.jsx</code></td>
+    <td>Fix del logo: import <code>../../../nuevoLOGOMegas.png</code> → <code>../../nuevoLOGOMegas.png</code>. El PNG vive en
+    <code>frontend/</code>, y en el build del contenedor el <code>frontend/</code> queda como raíz de módulos; la ruta con tres <code>../</code>
+    rompía el build del Dockerfile (no así en local).</td>
+  </tr>
+</table>
+
+<h2>5.1 Archivos modificados locales SIN commitear (importante)</h2>
+<pre>
+$ git status -s
+ M .env.produccion                          # env local de desarrollo (no debe comitearse)
+ M frontend/src/pages/CalificacionesPage.jsx  # versión local sin Firestore; NO se desplegó
+</pre>
+<div class="warn">El bundle desplegado (hash <code>index-YccBd-tK.js</code>) corresponde exactamente a <code>7da92ae</code>
+(comiteado), y NO incluye la versión local de <code>CalificacionesPage.jsx</code>. Por eso el hash no coincide con un build local si
+el equipo tiene la versión modificada en disco (diferencias de Firestore).</div>
+
+<!-- ===================================================================== -->
+<h1 id="s6">6. Bitácora del despliegue fase por fase</h1>
+<!-- ===================================================================== -->
+
+<h2>Fase A — Ajustes del compose y push (local)</h2>
+<ul>
+  <li>Se editó <code>filesParaDeploy/docker-compose.prod.yml</code> con los cambios de la sección 5 (commits <code>ee5d6cf</code>,
+  <code>b3d27e5</code>, <code>8de9757</code>, <code>7da92ae</code>).</li>
+  <li>Se pusheó la rama <code>segundaSimple</code>.</li>
+</ul>
+
+<h2>Fase B — Backup preventivo en el VPS</h2>
+<ul>
+  <li>Antes de tocar nada se copió: la DB viva (<code>db.sqlite3-live-autoglp</code>), el <code>.env.produccion</code> y
+  <code>media/</code> (2 certificados) a <code>/root/backups/pre-deploy-20261006-134248/</code>.</li>
+  <li>Es el punto de restauración del estado previo (sección 3.5).</li>
+</ul>
+
+<h2>Fase C — Selección y restauración de la base de datos</h2>
+<ul>
+  <li>Había dos candidatas en el VPS: <code>db.sqlite3.bak-antes-borrar-autoglp</code> y <code>db.sqlite3.bak-antes-evaluaciones</code>.</li>
+  <li>Se eligió la primera por ser la más completa (incluía datos de evaluaciones y foro). Se restauró como
+  <code>/root/induccion-megas/data/db.sqlite3</code>.</li>
+  <li>Se copió <code>media/</code> (certificados) a <code>/root/induccion-megas/media/</code>.</li>
+  <li>Conteos de la base restaurada: 22 tablas, 27 migraciones; ver conteos finales tras migrar en la sección 12.</li>
+  <li>Nota: existen 3 filas <code>auth_user</code> duplicadas para <code>marketingmagas2026@gmail.com</code>; inofensivas porque
+  <code>usuario_autorizado()</code> usa <code>.filter(email__iexact, is_active=True).order_by('id').first()</code>.</li>
+</ul>
+
+<h2>Fase D — Deploy del backend</h2>
+<ol>
+  <li><code>git pull</code> en <code>/root/induccion-megas</code> hasta <code>7da92ae</code>.</li>
+  <li><b>Incidente DNS en build</b>: <code>docker compose build</code> falló por DNS (pip) → se construyó la imagen con la red del host:
+    <pre>docker build --network host -t induccion-megas-backend:8de9757 -f Dockerfile.backend .</pre>
+  </li>
+  <li><b>Incidente restart con resta de iptables</b>: tras un <code>systemctl restart docker</code> el <code>ps</code> dejó de publicar
+  puertos (cadenas DOCKER-FORWARD purgadas por firewalld). Se resolvió con otro <code>systemctl restart docker</code> y arranque manual de
+  los contenedores con <code>restart=no</code> (los dos nuevos son <code>unless-stopped</code> y arrancan solos).</li>
+  <li><b>Incidente de red compose</b>: como el proyecto compose había cambiado de nombre vs. el intento anterior, no encontraba la red;
+  la solución fue el <code>name: induccion-megas</code> (commit <code>8de9757</code>) para reutilizar <code>induccion-megas_default</code>.</li>
+  <li><b>Incidente de tag</b>: un <code>up</code> sin <code>APP_VERSION</code> exportado montó la imagen vieja <code>:latest</code> (que
+  además no levantaba). Se exporta siempre:
+    <pre>export APP_VERSION=$(git rev-parse --short HEAD)</pre>
+  </li>
+  <li>Arranque real:
+    <pre>docker compose --env-file .env.produccion -f filesParaDeploy/docker-compose.prod.yml up -d --no-deps backend</pre>
+  </li>
+  <li>Validador tras levantar: <code>docker exec ruta-induccion-backend python manage.py migrate --noinput</code> completó TODAS las
+  migraciones, incluidas las nuevas <code>courses.0008_certificado_token</code> y <code>courses.0009_backfill</code>.</li>
+  <li>Pruebas directas en <code>127.0.0.1:8001</code>: <code>/admin/</code> 302, <code>/static/admin/css/base.css</code> 200,
+  <code>/api/foro/temas/</code> 200 (JSON).</li>
+</ol>
+
+<h2>Fase E — Deploy del frontend</h2>
+<ol>
+  <li>El build local del contenedor fallaba por el import del logo → fix en 3 páginas (commit <code>7da92ae</code>).</li>
+  <li>Build con red del host por el mismo problema de DNS:
+    <pre>docker build --network host -t induccion-megas-frontend:7da92ae -f Dockerfile.frontend .
+export APP_VERSION=$(git rev-parse --short HEAD)
+docker compose --env-file .env.produccion -f filesParaDeploy/docker-compose.prod.yml up -d --no-deps frontend</pre>
+  </li>
+  <li>Se eliminaron el contenedor y la imagen viejos del frontend anterior (<code>ruta-induccion-frontend</code>,
+  <code>induccion-megas-frontend:latest</code> quedó como imagen para rollback).</li>
+  <li>Validación: <code>http://127.0.0.1:5138/rutainduccion/</code> sirve la SPA (200) y, gracias al <code>nginx.conf</code> interno,
+  proxea correcto <code>/api/</code>, <code>/admin/</code> y <code>/static/</code> → <code>backend:8000</code> (probado con
+  <code>Host: www.megas.com.co</code>).</li>
+</ol>
+
+<h2>Fase F — Routing externo (la parte más delicada)</h2>
+<ol>
+  <li>Estado previo: <code>/api/</code> se resolvía por una regla rota (<code>backend_api</code> apuntando a un extprocessor inexistente,
+  500), y el frontend viejo tomaba <code>/admin/</code> y <code>/static/</code> por un contexto anidado defectuoso (404).</li>
+  <li>Primer intento: editar <code>/usr/local/lsws/conf/vhosts/www.megas.com.co/vhost.conf</code> agregando
+  <code>context /api/</code>, <code>context /admin/</code> y <code>context /static/</code> de tipo <code>proxy</code> con handler
+  <code>dockerBackend_Induccion</code> + <code>lswsctrl restart</code>. Resultado: <span class="ko">404</span> (LiteSpeed no honró los contexts).</li>
+  <li>Segundo intento: replicar los mismos contexts en el segundo vhost (<code>megas.com.co/vhost.conf</code>). Resultado:
+  <span class="ko">404</span> igual.</li>
+  <li>Diagnóstico con el cuerpo de las respuestas: <code>/admin/login/</code> devolvía la página de login de Django y
+  <code>/api/foro/temas/</code> el JSON real del backend NUEVO en cuanto se toparon. El 404 era cuestión de <i>cuándo</i> se aplicaba
+  la config: los cambios en <code>.htaccess</code> se leen en vivo.</li>
+  <li><b>Solución efectiva</b>: rewrites proxy <code>[P]</code> en <code>/home/www.megas.com.co/public_html/.htaccess</code>
+  apuntando a los extprocessors por nombre (mismo mecanismo que ya usaba <code>/rutainduccion</code> y <code>/rutadeexpertos</code>):
+    <pre># 4. Backend nuevo de la Ruta de Induccion: API, admin y estaticos
+RewriteRule ^/?api/(.*)$    http://dockerBackend_Induccion/api/$1   [P,L]
+RewriteRule ^/?admin/(.*)$  http://dockerBackend_Induccion/admin/$1 [P,L]
+RewriteRule ^/?static/(.*)$ http://dockerBackend_Induccion/static/$1 [P,L]</pre>
+    Al ser <code>autoLoadHtaccess 1</code>, se aplica en vivo sin reiniciar. Resultado: <span class="ok">todas 200</span>.</li>
+  <li>Aclaración arquitectónica: en esta instalación los contexts proxy de LiteSpeed no maduran; la vía fiable (y ya usada
+  previamente) son los rewrites <code>[P]</code> con la dirección <code>http://&lt;nombre_extprocessor>/...</code>, donde el host del
+  rewrite coincide con el nombre de un extprocessor declarado a nivel de servidor en <code>httpd_config.conf</code>.</li>
+  <li>Se limpió el <code>.htaccess</code> de reglas muertas: <code>backend_api</code>, regla antigua <code>/api/</code> y
+  <code>/api-induccion</code>. Backup <code>.htaccess.pre-deploy.*</code>.</li>
+  <li>nginx del host (puerto 80): se reemplazó el server block por defecto por un redirect total a https
+  (<code>return 301 https://www.megas.com.co$request_uri</code>), preservando <code>/.well-known/acme-challenge/</code> hacia
+  <code>/usr/local/lsws/Example/html</code> (webroot compartido con litespeed para renovación de certificados).
+  <code>nginx -t</code> OK + <code>systemctl reload nginx</code>.</li>
+  <li><b>Verificación "sonda"</b>: se escribió un mini servidor HTTP en <code>127.0.0.1:8100</code>, un extprocessor <code>probe</code>
+  temporal y una regla rewrite temporal para inspeccionar las cabeceras que LiteSpeed envía al backend a través del rewrite <code>[P]</code>.
+  El log mostró:</li>
+</ol>
+<pre>
+PATH=/probex/zz/aa
+host: www.megas.com.co
+X-Forwarded-Host: www.megas.com.co
+X-Forwarded-Proto: https
+X-Forwarded-For: 177.7.49.5
+</pre>
+<p class="small">→ Confirma que el backend recibe <b>https</b> en <code>X-Forwarded-Proto</code>; con el <code>SECURE_PROXY_SSL_HEADER</code>
+de Django las URLs absolutas (correos, certificados, CSRF) se generan como https. La sonda se retiró al terminar (extprocessor y regla
+eliminados, proceso cerrado, archivos temporales borrados).</p>
+
+<h2>Fase G — Verificación end-to-end</h2>
+<p>Ver tabla completa en la sección 7.</p>
+
+<h2>Fase H — Validación de Firebase sin consola</h2>
+<ul>
+  <li>El equipo no dispone de acceso a Firebase Console. Se validó por la API pública de Identity Toolkit (solo con la API key, que es
+  pública y va embebida en el bundle del frontend):
+    <ul>
+      <li><code>accounts:signInWithPassword</code> con un password incorrecto devolvió <code>INVALID_LOGIN_CREDENTIALS</code> (y NO un
+      error de proveedor deshabilitado) → el proveedor Email/Password está <b>activo</b>.</li>
+      <li><code>accounts:createAuthUri</code> respondió <code>sessionId</code> (flujo válido).</li>
+    </ul>
+  </li>
+  <li>Conclusión: <b>no se requiere añadir dominios a Authorized domains</b> para este flujo. Esa restricción aplica a OAuth
+  popup/redirect y a email-action-links; <code>signInWithEmailAndPassword</code> (lo que usa la app) no queda bloqueado por el dominio.
+  El dominio autorizado <code>plataforma-gmax.firebaseapp.com</code> y la API key de <code>frontend/src/config/firebase.js</code> son
+  reales y quedaron embebidas en el bundle <code>index-YccBd-tK.js</code>.</li>
+</ul>
+
+<!-- ===================================================================== -->
+<h1 id="s7">7. Verificación end-to-end (resultados medidos)</h1>
+<!-- ===================================================================== -->
+
+<h2>7.1 Rutas HTTPS — dominio <code>www.megas.com.co</code></h2>
+<table>
+  <tr><th>URL</th><th>Código</th><th>Comentario</th></tr>
+  <tr><td><code>/rutainduccion/</code></td><td class="ok">200</td><td>SPA; HTML referencia <code>assets/index-YccBd-tK.js</code> (coincide con el contenedor)</td></tr>
+  <tr><td><code>/api/foro/temas/</code></td><td class="ok">200</td><td>JSON con 3 temas (ids 1..3)</td></tr>
+  <tr><td><code>/api/auth/correo-autorizado/</code> GET</td><td class="ok">405</td><td>ruta correcta (solo POST)</td></tr>
+  <tr><td><code>/api/auth/correo-autorizado/</code> POST <code>{email}</code></td><td class="ok">200</td><td><code>{"autorizado": bool}</code></td></tr>
+  <tr><td><code>/api/auth/correo-autorizado/</code> POST sin email</td><td class="ok">400</td><td><code>{"error":"Falta el correo."}</code></td></tr>
+  <tr><td><code>/admin/login/</code></td><td class="ok">200</td><td>login de Django</td></tr>
+  <tr><td><code>/static/admin/css/base.css</code></td><td class="ok">200</td><td>WhiteNoise vía backend</td></tr>
+  <tr><td><code>/api/cursos/certificado/aaa/bbb/ccc/</code></td><td class="ok">404</td><td>ruta existe; token inexistente → 404 (comportamiento esperado)</td></tr>
+  <tr><td><code>/rutadeexpertos/</code></td><td class="ok">200</td><td>stack antiguo intacto</td></tr>
+  <tr><td><code>https://megas.com.co/rutainduccion/</code> (apex)</td><td class="ok">200</td><td>el cert cubre ambos dominios</td></tr>
+</table>
+
+<h2>7.2 Redirects HTTP → HTTPS (nginx del host)</h2>
+<table>
+  <tr><th>Request</th><th>Código</th><th>Location</th></tr>
+  <tr><td><code>http://megas.com.co/</code></td><td class="ok">301</td><td><code>https://www.megas.com.co/</code></td></tr>
+  <tr><td><code>http://www.megas.com.co/</code></td><td class="ok">301</td><td><code>https://www.megas.com.co/</code></td></tr>
+  <tr><td><code>http://www.megas.com.co/rutainduccion/</code></td><td class="ok">301</td><td><code>https://www.megas.com.co/rutainduccion/</code></td></tr>
+</table>
+
+<h2>7.3 Verificaciones internas (dentro del VPS)</h2>
+<ul>
+  <li><code>127.0.0.1:8001/admin/</code> → 302 (login). Directo al backend.</li>
+  <li><code>127.0.0.1:8001/api/foro/temas/</code> → 200 directo.</li>
+  <li><code>127.0.0.1:5138</code> con <code>Host: www.megas.com.co</code> → SPA 200 y proxy interno <code>/api/</code>,
+  <code>/admin/</code>, <code>/static/</code> → 200.</li>
+  <li>Sonda de cabeceras (ver 6.F): LiteSpeed envía <code>X-Forwarded-Proto: https</code>.</li>
+</ul>
+
+<!-- ===================================================================== -->
+<h1 id="s8">8. Runbook de operación (para el próximo programador)</h1>
+<!-- ===================================================================== -->
+<p>Todos los comandos siguientes se ejecutan como <code>root</code> en el VPS y el repositorio está en <code>/root/induccion-megas</code>.</p>
+
+<h2>8.1 Rebuild y despliegue de una versión nueva</h2>
+<pre>
+cd /root/induccion-megas
+git fetch origin && git checkout segundaSimple && git pull
+git checkout &lt;commit-or-rama&gt;        # opcional: fijar una versión
+export APP_VERSION=$(git rev-parse --short HEAD)
+# El DNS del daemon a veces falla para pip/npm; si falla el build, usar --network host:
+docker compose --env-file .env.produccion -f filesParaDeploy/docker-compose.prod.yml build
+#  o, alternativamente:
+# docker build --network host -t induccion-megas-backend:$APP_VERSION   -f Dockerfile.backend  .
+# docker build --network host -t induccion-megas-frontend:$APP_VERSION -f Dockerfile.frontend .
+
+docker compose --env-file .env.produccion -f filesParaDeploy/docker-compose.prod.yml up -d --no-deps backend
+docker compose --env-file .env.produccion -f filesParaDeploy/docker-compose.prod.yml up -d --no-deps frontend
+</pre>
+<div class="danger">SIEMPRE exportar <code>APP_VERSION</code>. Sin ella, compose usa <code>:latest</code> y levanta imágenes
+<u>viejas</u> (re-gresivo).</div>
+
+<h2>8.2 Rollback a una versión anterior</h2>
+<p>Las imágenes se etiquetan por commit; reconstruir/montar un tag anterior compuesto (commits de build: backend usa la imagen del código
+del backend del commit <code>&lt;B&gt;</code>, frontend de <code>&lt;F&gt;</code>):</p>
+<pre>
+docker build --network host -t induccion-megas-backend:&lt;commitB&gt;  -f Dockerfile.backend  .   # checkout de &lt;commitB&gt;
+docker build --network host -t induccion-megas-frontend:&lt;commitF&gt; -f Dockerfile.frontend .
+# y volcar la imagen vieja con el mismo procedimiento del 8.1.
+</pre>
+
+<h2>8.3 Logs</h2>
+<pre>
+docker logs --tail 200 -f ruta-induccion-backend
+docker logs --tail 200 -f induccion-megas-frontend
+tail -f /usr/local/lsws/logs/error.log          # errores de LiteSpeed
+</pre>
+
+<h2>8.4 Backup / restauración de datos (lo único que se backupea)</h2>
+<pre>
+mkdir -p /root/backups/`date +%Y%m%d-%H%M%S`
+cp -a /root/induccion-megas/data/db.sqlite3   /root/backups/&lt;ts&gt;/
+cp -a /root/induccion-megas/media             /root/backups/&lt;ts&gt;/
+# restaurar: parar el backend, copiar, subir de nuevo
+docker restart ruta-induccion-backend
+</pre>
+<div class="tip">La DB es SQLite: al respaldar en caliente conviene un <code>cp</code> atómico (o <code>sqlite3 db .backup</code>).</div>
+
+<h2>8.5 Reinicio de la máquina (containers que no auto-arrancan)</h2>
+<ul>
+  <li>Los dos contenedores nuevos son <code>restart: unless-stopped</code> → arrancan solos con el daemon.</li>
+  <li>Los dos contenedores viejos (<code>universidadg-max-*-1</code>) son <code>restart=no</code> → levantarlos a mano tras un reboot:</li>
+</ul>
+<pre>
+systemctl restart docker            # a veces necesario tras reinicios: restaura iptables de docker (firewalld los purga)
+docker start universidadg-max-frontend-1 universidadg-max-backend-1
+</pre>
+
+<h2>8.6 Cambios de ruteo (el mecanismo que SÍ funciona)</h2>
+<ul>
+  <li>Editar <code>/home/www.megas.com.co/public_html/.htaccess</code> (rewrites <code>[P]</code>). Se aplica EN VIVO; no hace falta reiniciar.</li>
+  <li>Si se añade un destino nuevo, declarar antes su extprocessor en <code>/usr/local/lsws/conf/httpd_config.conf</code> y reiniciar
+  LiteSpeed (<code>/usr/local/lsws/bin/lswsctrl restart</code>).</li>
+</ul>
+
+<h2>8.7 Verificación rápida post-cambio</h2>
+<pre>
+curl -s -o /dev/null -w '%{http_code}\n' https://www.megas.com.co/rutainduccion/
+curl -s -o /dev/null -w '%{http_code}\n' https://www.megas.com.co/api/foro/temas/
+curl -s -o /dev/null -w '%{http_code}\n' https://www.megas.com.co/admin/login/
+curl -s -o /dev/null -w '%{http_code}\n' https://www.megas.com.co/static/admin/css/base.css
+curl -s -o /dev/null -w '%{http_code}\n' http://www.megas.com.co/            # 301 esperado
+</pre>
+
+<!-- ===================================================================== -->
+<h1 id="s9">9. Mapa de URLs y endpoints</h1>
+<!-- ===================================================================== -->
+<h2>9.1 Públicas (externas)</h2>
+<table>
+  <tr><th>URL</th><th>Qué es</th></tr>
+  <tr><td><code>/rutainduccion/</code> y <code>/rutainduccion/*</code></td><td>SPA React (login, register, cursos…)</td></tr>
+  <tr><td><code>/rutadeexpertos/</code> y <code>/rutadeexpertos/*</code></td><td>Stack antiguo (NO migrado todavía)</td></tr>
+  <tr><td><code>/admin/</code></td><td>Admin Django (superuser de Django)</td></tr>
+  <tr><td><code>/static/*</code></td><td>Estáticos de Django (WhiteNoise)</td></tr>
+  <tr><td><code>/api/*</code></td><td>API JSON (foro, cursos, evaluaciones, auth)</td></tr>
+</table>
+
+<h2>9.2 Endpoints internos del backend</h2>
+<pre>
+# core_project/urls.py
+/admin/                                                              → admin.site.urls
+/ (incluye usuarios.urls)
+/api/foro/          → foro.urls
+/api/cursos/        → courses.urls
+/api/cursos/evaluaciones/ → evaluaciones.urls
+
+# usuarios/urls.py (destacados)
+/api/auth/correo-autorizado/ (POST {"email": "…"})  → {"autorizado": bool}   [sin sesión requerida]
+/api/auth/verificar_acceso   (POST Bearer ID token) → valida sesión Firebase contra whitelist
+# courses/urls.py (destacados)
+/api/cursos/enviar-certificado/                    (POST multipart, con auth) → registra el PDF y envía el correo
+/api/cursos/certificado/&lt;user_id&gt;/&lt;course_id&gt;/&lt;token&gt;/  → descarga del certificado PDF (única con token, sin sesión)
+</pre>
+<div class="note"><code>/media/</code> NO se expone públicamente a propósito: los certificados se descargan por el endpoint tokenizado
+arriba. La regla <code>location /media/</code> del nginx del contenedor frontend es un plan B interno, no una puerta pública.</div>
+
+<h2>9.3 Config de los servicios en el compose</h2>
+<ul>
+  <li>Backend: comando de arranque <code>migrate --noinput</code> → <code>collectstatic --noinput</code> → <code>gunicorn :8000</code>.</li>
+  <li>Volúmenes: <code>data/db.sqlite3 → /app/db.sqlite3</code> y <code>media → /app/media</code>.</li>
+  <li><code>logging: json-file</code> con <code>max-size 10m</code> / 3 archivos rotados (evita llenar el disco).</li>
+</ul>
+
+<!-- ===================================================================== -->
+<h1 id="s10">10. Configuración requerida (.env.produccion)</h1>
+<!-- ===================================================================== -->
+<p>Solo se listan los NOMBRES y su propósito (los valores con secretos NO se publican; viven en
+<code>filesParaDeploy/.env.produccion</code> del repo clonado y también en <code>/root/induccion-megas/.env.produccion</code>).</p>
+<table>
+  <tr><th>Variable</th><th>Obligatoria</th><th>Propósito</th></tr>
+  <tr><td><code>SECRET_KEY</code></td><td>Sí (<code>:?</code>)</td><td>Secret de Django. Sin ella el contenedor no arranca.</td></tr>
+  <tr><td><code>DEBUG</code></td><td>No (default False)</td><td>Nunca True en prod.</td></tr>
+  <tr><td><code>ALLOWED_HOSTS</code></td><td>No</td><td><code>megas.com.co,www.megas.com.co,localhost,127.0.0.1,177.7.49.5</code></td></tr>
+  <tr><td><code>CSRF_TRUSTED_ORIGINS</code></td><td>No</td><td><code>https://megas.com.co,https://www.megas.com.co</code></td></tr>
+  <tr><td><code>CORS_ALLOWED_ORIGINS</code></td><td>No</td><td>Vacío por defecto: el frontend usa rutas relativas, sin CORS.</td></tr>
+  <tr><td><code>EMAIL_HOST_USER</code></td><td>Sí (<code>:?</code>)</td><td>Cuenta SMTP que manda los correos (certificados, recuperación de password).</td></tr>
+  <tr><td><code>EMAIL_HOST_PASSWORD</code></td><td>Sí (<code>:?</code>)</td><td>Password SMTP.</td></tr>
+  <tr><td><code>NOTIF_DESTINATARIOS</code></td><td>Sí (<code>:?</code>)</td><td>Correos internos de aviso (equipo).</td></tr>
+  <tr><td><code>FIREBASE_PROJECT_ID</code></td><td>Sí (<code>:?</code>)</td><td>Id del proyecto Firebase (<code>plataforma-gmax</code>). Sin él, el backend no audita tokens y toda la API da 503.</td></tr>
+</table>
+<p>En <code>core_project/settings.py</code>: <code>SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')</code>,
+<code>MEDIA_URL = '/media/'</code>, <code>MEDIA_ROOT = BASE_DIR / 'media'</code>.</p>
+
+<!-- ===================================================================== -->
+<h1 id="s11">11. Hallazgos del entorno y trampas conocidas</h1>
+<!-- ===================================================================== -->
+<ul>
+  <li><b>LiteSpeed no aplica <code>context proxy</code></b> en esta instalación (probado en ambos vhosts). El ruteo por proxy efectivo
+  son los rewrites <code>[P]</code> con host = nombre de extprocessor. <span class="small">Los contexts añadidos hoy quedaron colocados
+  en los vhost.conf (inactivos) — limpieza estética opcional.</span></li>
+  <li><b>vhost doble</b>: <code>www.megas.com.co</code> y <code>megas.com.co</code> comparten docRoot; por eso el <code>.htaccess</code> es
+  válido para ambos. En el vhost <code>megas.com.co</code>, los contexts /api-//admin//static quedaron anidados dentro del bloque del
+  context acme-challenge (defecto estético; sin impacto porque el ruteo real está en el .htaccess). No intentar "arreglarlo" sin saber
+  que los contexts no son el mecanismo vivo.</li>
+  <li><b>IPtables / firewalld</b>: tras <code>systemctl restart docker</code> (o un reinicio) a veces faltan las cadenas
+  DOCKER-FORWARD y los puertos dejan de publicarse. Remedio: reiniciar docker otra vez y <code>docker start</code> los contenedores
+  <code>restart=no</code>.</li>
+  <li><b>DNS en builds</b>: pip/npm dentro de <code>docker build</code> falló; usar <code>--network host</code>.</li>
+  <li><b>Compose "v5.1.3"</b>: binario no estándar pero funcional; acepta <code>--env-file</code>. No confiar en etiquetas por defecto.</li>
+  <li><b><code>:latest</code> es engañoso</b>: es la imagen de otro intento. Etiquetar SIEMPRE por <code>APP_VERSION</code>.</li>
+  <li><b>Emails duplicados</b> en <code>auth_user</code> (3× marketingmagas2026@gmail.com): inofensivos por el <code>filter().order_by('id').first()</code>.</li>
+  <li><b>El <code>nginx.conf</code> de la raíz del repo</b> es el del CONTENEDOR frontend (<code>COPY nginx.conf /etc/nginx/conf.d/default.conf</code>).
+  Ojo: existe también <code>frontend/nginx.conf</code> (legacy) y <code>filesParaDeploy/nginx-host.conf</code> (borrador de host).</li>
+  <li><b>El tag <code>8de9757</code> del backend</b> es el comit del build correcto del backend (el código del backend no cambió en
+  <code>7da92ae</code>, ese commit solo tocó el frontend).</li>
+  <li><b>Env del frontend corre a través de litespeed</b>: el proxy de litespeed manda <code>X-Forwarded-Proto/Host/For</code>;
+  el nginx interno del contenedor los reenvía sin pisarlos (usa <code>$http_x_forwarded_proto</code> con fallback <code>$scheme</code>).</li>
+  <li><b>Puerto 80 lo tiene nginx</b> (no liteSpeed); <code>ss -lntp</code> lo confirma: <code>nginx 0.0.0.0:80</code>,
+  <code>litespeed :443</code>. No intentar "arreglar" el listener 80 de liteSpeed.</li>
+</ul>
+
+<!-- ===================================================================== -->
+<h1 id="s12">12. Estado final de los datos (DB)</h1>
+<!-- ===================================================================== -->
+<p>DB productiva: <code>/root/induccion-megas/data/db.sqlite3</code> — SQLite, medidas el 06-oct después de aplicar migraciones
+(<code>SELECT count(*) FROM ...</code>).</p>
+<table>
+  <tr><th>Tabla</th><th>Filas</th></tr>
+  <tr><td>django_migrations</td><td>29</td></tr>
+  <tr><td>auth_user</td><td>4</td></tr>
+  <tr><td>auth_permission / auth_user_user_permissions</td><td>68 / 68</td></tr>
+  <tr><td>courses_course</td><td>2</td></tr>
+  <tr><td>courses_module</td><td>2</td></tr>
+  <tr><td>courses_lesson</td><td>11</td></tr>
+  <tr><td>courses_calificacion</td><td>2</td></tr>
+  <tr><td>courses_certificado</td><td>2</td></tr>
+  <tr><td>courses_userprogress</td><td>19</td></tr>
+  <tr><td>evaluaciones_evaluacion / _pregunta / _opcion</td><td>1 / 2 / 4</td></tr>
+  <tr><td>foro_thread / foro_post</td><td>4 / 2</td></tr>
+  <tr><td>django_admin_log / django_content_type / django_session</td><td>72 / 17 / 6</td></tr>
+  <tr><td>auth_group (+permissions)</td><td>0</td></tr>
+</table>
+<p class="small">(21 tablas de datos + ¿tablas de session? — el conteo de tablas de la BBDD es 21 sin incluir las <code>sqlite_*</code> internas;
+22 contando <code>sqlite_sequence</code>.)</p>
+
+<!-- ===================================================================== -->
+<h1 id="s13">13. Pendientes para el equipo / usuario</h1>
+<!-- ===================================================================== -->
+<ul>
+  <li><b>Prueba manual en navegador</b> (final paso de QA): alta de cuenta nueva (debe estar el correo en <code>auth_user</code>),
+  login, catálogo → lección → evaluación → generación de certificado (correo y descarga por token), foro, y acceso a <code>/admin/</code>.</li>
+  <li><b>No hace falta Firebase Console</b> para este flujo (verificado, sección 6.H). Solo si algún día se activa login por Google
+  u OAuth se necesitará añadir <code>www.megas.com.co</code> a Authorized domains.</li>
+  <li><b>CalificacionesPage local sin Firestore</b>: la versión desplegada es la comiteada (usa Firestore del backend admin si procede).
+  Si el equipo quiere la variante local, hay que comitearla y rebuildear.</li>
+  <li>Los <code>context proxy</code> inactivos en los vhost.conf pueden limpiarse (estético), y conviene unificar/eliminar los
+  <code>nginx-host.conf</code> / <code>frontend/nginx.conf</code> obsoletos para evitar confusiones.</li>
+  <li>Migración futura de <code>/rutadeexpertos/</code> al stack nuevo está fuera del alcance de este día.</li>
+</ul>
+
+<!-- ===================================================================== -->
+<h1 id="s14">14. Apéndices</h1>
+<!-- ===================================================================== -->
+
+<h2>14.1 <code>filesParaDeploy/docker-compose.prod.yml</code> (estado final)</h2>
+<pre>
+# ============================================================
+#  docker-compose.prod.yml  —  SOLO para el VPS.
+# ... (comentarios omitidos por brevedad; el archivo real los trae) ...
+# ============================================================
+name: induccion-megas
+
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: Dockerfile.backend
+    image: induccion-megas-backend:${APP_VERSION:-latest}
+    container_name: ruta-induccion-backend
+    restart: unless-stopped
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn --bind 0.0.0.0:8000 core_project.wsgi:application --timeout 120"
+    ports:
+      - "127.0.0.1:8001:8000"
+    volumes:
+      - /root/induccion-megas/data/db.sqlite3:/app/db.sqlite3
+      - /root/induccion-megas/media:/app/media
+    environment:
+      - DEBUG=${DEBUG:-False}
+      - SECRET_KEY=${SECRET_KEY:?falta SECRET_KEY en .env}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-megas.com.co,www.megas.com.co}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-https://megas.com.co,https://www.megas.com.co}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER:?falta EMAIL_HOST_USER en .env}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:?falta EMAIL_HOST_PASSWORD en .env}
+      - NOTIF_DESTINATARIOS=${NOTIF_DESTINATARIOS:?falta NOTIF_DESTINATARIOS en .env}
+      - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID:?falta FIREBASE_PROJECT_ID en .env}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: Dockerfile.frontend
+    image: induccion-megas-frontend:${APP_VERSION:-latest}
+    container_name: induccion-megas-frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5138:80"
+    depends_on:
+      - backend
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+</pre>
+
+<h2>14.2 <code>.htaccess</code> final (<code>/home/www.megas.com.co/public_html/.htaccess</code>)</h2>
+<pre>
+RewriteEngine On
+
+rewrite  {
+  enable                  1
+  autoLoadHtaccess        1
+  rules                   <<<END_rules
+
+  # 1. Fuerza HTTPS y WWW
+  RewriteCond %{HTTPS} off [OR]
+  RewriteCond %{HTTP_HOST} ^megas\.com\.co$ [NC]
+  RewriteRule ^/?(.*)$ https://www.megas.com.co/$1 [L,R=301]
+
+  # 2. RUTA DE EXPERTOS (universidad g-max): stack antiguo, sigue activo
+  RewriteRule ^/?rutadeexpertos$ https://www.megas.com.co/rutadeexpertos/ [R=301,L]
+  RewriteRule ^/?rutadeexpertos/(.*)$ http://dockerFrontend/rutadeexpertos/$1 [P,L]
+
+  # 3. RUTA DE INDUCCION: el SPA
+  RewriteRule ^/?rutainduccion$ https://www.megas.com.co/rutainduccion/ [R=301,L]
+  RewriteRule ^/?rutainduccion/(.*)$ http://dockerFrontend_Induccion/rutainduccion/$1 [P,L]
+
+  # 4. Backend nuevo de la Ruta de Induccion: API, admin y estaticos
+  RewriteRule ^/?api/(.*)$ http://dockerBackend_Induccion/api/$1 [P,L]
+  RewriteRule ^/?admin/(.*)$ http://dockerBackend_Induccion/admin/$1 [P,L]
+  RewriteRule ^/?static/(.*)$ http://dockerBackend_Induccion/static/$1 [P,L]
+
+  END_rules
+}
+</pre>
+
+<h2>14.3 nginx del host — server block :80 final</h2>
+<pre>
+server {
+    listen       80;
+    listen       [::]:80;
+    server_name  _;
+
+    # Webroot de ACME: lo comparte con LiteSpeed (renovacion del cert)
+    location /.well-known/acme-challenge/ {
+        root /usr/local/lsws/Example/html;
+    }
+
+    # Todo el trafico http va a https; el TLS lo termina LiteSpeed en 443
+    location / {
+        return 301 https://www.megas.com.co$request_uri;
+    }
+}
+</pre>
+
+<h2>14.4 LiteSpeed — extprocessors relevantes (a nivel de servidor, <code>httpd_config.conf</code>)</h2>
+<pre>
+extprocessor dockerFrontend {
+  type                    proxy
+  address                 127.0.0.1:5137      # stack antiguo frontend (rutadeexpertos)
+  maxConns                100
+  pcKeepAliveTimeout      60
+  initTimeout             60
+  retryTimeout            0
+  respBuffer              0
+}
+extprocessor dockerBackend {
+  type                    proxy
+  address                 127.0.0.1:8000      # stack antiguo backend
+  maxConns                100
+  pcKeepAliveTimeout      60
+  initTimeout             60
+  retryTimeout            0
+  respBuffer              0
+}
+extprocessor dockerFrontend_Induccion {
+  type                    proxy
+  address                 127.0.0.1:5138      # stack nuevo frontend
+  maxConns                100
+  pcKeepAliveTimeout      60
+  initTimeout             60
+  retryTimeout            0
+  respBuffer              0
+}
+extprocessor dockerBackend_Induccion {
+  type                    proxy
+  address                 127.0.0.1:8001      # stack nuevo backend
+  maxConns                100
+  pcKeepAliveTimeout      60
+  initTimeout             60
+  retryTimeout            0
+  respBuffer              0
+}
+</pre>
+
+<h2>14.5 <code>nginx.conf</code> del CONTENEDOR frontend (raíz del repo)</h2>
+<pre>
+# El TLS lo termina el nginx del host... se reenvia X-Forwarded-Proto.
+map $http_x_forwarded_proto $forwarded_proto {
+    default $http_x_forwarded_proto;
+    ''      $scheme;
+}
+
+server {
+    listen 80;
+    server_name localhost megas.com.co www.megas.com.co;
+    root /usr/share/nginx/html;
+    absolute_redirect off;
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $forwarded_proto;
+    client_max_body_size 20M;
+
+    location = / { return 302 /rutainduccion/; }
+    location = /rutadeexpertos { return 301 /rutainduccion/; }
+    location /rutainduccion { alias /usr/share/nginx/html/rutainduccion;
+                              try_files $uri $uri/ /rutainduccion/index.html; }
+    location /api/     { proxy_pass http://backend:8000; }
+    location /admin/   { proxy_pass http://backend:8000; }
+    location /static/  { proxy_pass http://backend:8000; }
+    location /media/   { alias /usr/share/nginx/html/media/; }
+    location /         { return 302 /rutainduccion$request_uri; }
+}
+</pre>
+
+<h2>14.6 Dockerfiles</h2>
+<p><b>Dockerfile.backend</b> (python:3.12-slim):</p>
+<pre>
+FROM python:3.12-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+RUN python manage.py collectstatic --noinput
+EXPOSE 8000
+</pre>
+<p><b>Dockerfile.frontend</b> (Node 20 → nginx:alpine):</p>
+<pre>
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY frontend/package*.json ./
+RUN npm install
+COPY frontend/ ./
+RUN npm run build
+
+FROM nginx:alpine
+COPY --from=build /app/dist /usr/share/nginx/html/rutainduccion
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+</pre>
+
+<h2>14.7 Firebase (referencia pública, sin secretos)</h2>
+<pre>
+frontend/src/config/firebase.js  (valores vigentes, incrustados en el bundle desplegado)
+  apiKey:            "AIzaSyDFjt0nBYpyVXEFkti8CugjSS5DBwoFI18"   # key pública (va en el bundle)
+  authDomain:        "plataforma-gmax.firebaseapp.com"
+  projectId:         "plataforma-gmax"
+  storageBucket:     "plataforma-gmax.firebasestorage.app"
+  messagingSenderId: "213219499650"
+  appId:             "1:213219499650:web:b1f5717ece4268c2111e9b"
+Uso: interno en el backend mediante Firebase Admin (FIREBASE_PROJECT_ID) para auditar ID tokens.
+</pre>
+<div class="danger">La API key de Firebase es pública por diseño (nunca es un secreto). Las credenciales que NO se deben exponer son
+<code>SECRET_KEY</code> de Django y <code>EMAIL_HOST_PASSWORD</code>.</div>
+
+<h2>14.8 Referencia rápida de comandos del día (para reproducir)</h2>
+<pre>
+# Local (Windows) — push de los 4 commits a segundaSimple
+git push origin segundaSimple
+
+# VPS — despliegue backend+frontend, con APP_VERSION
+cd /root/induccion-megas
+git fetch origin && git checkout segundaSimple && git pull
+export APP_VERSION=$(git rev-parse --short HEAD)
+docker build --network host -t induccion-megas-backend:$APP_VERSION  -f Dockerfile.backend  .
+docker build --network host -t induccion-megas-frontend:$APP_VERSION -f Dockerfile.frontend .
+docker compose --env-file .env.produccion -f filesParaDeploy/docker-compose.prod.yml up -d --no-deps backend
+docker compose --env-file .env.produccion -f filesParaDeploy/docker-compose.prod.yml up -d --no-deps frontend
+docker exec ruta-induccion-backend python manage.py migrate --noinput
+
+# VPS — routing (ya aplicado en el día): editar .htaccess; nginx host ya redirige a https.
+nginx -t && systemctl reload nginx
+/usr/local/lsws/bin/lswsctrl restart        # solo si se cambia liteSpeed (no para .htaccess)
+</pre>
+
+<hr>
+<p class="small">Fin del documento. Reporte elaborado el 06-oct-2026 a partir de la bitácora de despliegue del stack nuevo de la
+Ruta de Inducción (rama <code>segundaSimple</code>). No contiene credenciales sensibles.</p>
+
+</body>
+</html>

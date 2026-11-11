@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, CheckCircle2, Play, Lock } from 'lucide-react';
 import { useCourseStore } from '../store/useCourseStore';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { TextoEnParrafos } from '../components/shared/TextoEnParrafos';
 import { useAuth } from '../context/AuthContext';
-import { EvaluacionCurso } from '../components/EvaluacionCurso';
 
 import { CourseProgress } from '../components/CourseProgress';
 
@@ -14,14 +13,7 @@ export const CursoLeccionPage = () => {
   const navigate = useNavigate();
   const { currentCourse: course, isLoading, error, fetchCourseById, clearCurrentCourse, updateCourseProgress, markLessonComplete } = useCourseStore();
   const { currentUser } = useAuth();
-  const [activeTab, setActiveTab] = useState(0);
-  const [quizPassed, setQuizPassed] = useState(false);
-
   const parsedLeccionId = parseInt(leccionId);
-  // La evaluación se muestra en la última lección del curso, sin excepciones
-  // por id: el caso especial del curso 3 apuntando al 4 quedó desactualizado
-  // cada vez que el catálogo cambió.
-  const isEvalLesson = course && parsedLeccionId === course.totalLessons;
 
   useEffect(() => {
     if (id) {
@@ -29,11 +21,6 @@ export const CursoLeccionPage = () => {
     }
     return () => clearCurrentCourse();
   }, [id, currentUser]);
-
-  useEffect(() => {
-    setActiveTab(0);
-    setQuizPassed(false);
-  }, [leccionId]);
 
   useEffect(() => {
     if (course && course.id === parseInt(id)) {
@@ -46,44 +33,21 @@ export const CursoLeccionPage = () => {
     }
   }, [course, parsedLeccionId, id]);
 
-  const handleQuizPass = (passed) => {
-    setQuizPassed(passed);
-    if (passed && id) {
-      markLessonComplete(id, parsedLeccionId, currentUser?.uid);
-      // Nunca 100: la última lección del curso es la evaluación, y marcarla
-      // como completada antes de evaluarse hacía que el botón de "descargar
-      // certificado" apareciera sin que nadie hubiera aprobado nada.
-      updateCourseProgress(id, {
-        completedLessons: course.totalLessons - 1,
-        totalLessons: course.totalLessons,
-        progress: 99,
-      });
-    }
-  };
-
   const handleCompleteCourse = async () => {
     if (id && course) {
-      // Guardar TODAS las lecciones del curso como completadas en Django
       if (course.lessons) {
         for (const lesson of course.lessons) {
           await markLessonComplete(id, lesson.id, currentUser?.uid);
         }
       }
 
-      // Actualizar el estado local al 100%
       await updateCourseProgress(id, {
         completedLessons: course.totalLessons,
         totalLessons: course.totalLessons,
         progress: 100
       });
-
-      // El certificado NO se genera acá. Antes esta función armaba el PDF y lo
-      // subía al backend, así que completar lecciones bastaba para obtener un
-      // certificado sin haber aprobado la evaluación. Ahora lo emite la
-      // evaluación, que es la que verifica la nota contra el banco.
     }
   };
-
 
   if (isLoading || !course) return <LoadingSpinner text="Cargando tu lección..." />;
 
@@ -97,35 +61,17 @@ export const CursoLeccionPage = () => {
     );
   }
 
-  // Find the current lesson object
   const currentLesson = course.lessons?.find(l => l.id === parsedLeccionId) || {
     id: parsedLeccionId,
     title: `Lección ${parsedLeccionId}`,
     videoId: ''
   };
 
-  // El contenido escrito de la lección se muestra en su tarjeta, debajo del
-  // video. Resumen solo existe como fallback para las lecciones que no tienen
-  // ese texto: si abajo ya hay contenido, la pestaña queda vacía y no se
-  // muestra.
   const tieneContenido = Boolean(currentLesson.content_text && currentLesson.content_text.trim());
 
-  // Find previous lesson for the "Volver" button
   const prevLesson = parsedLeccionId > 1 ? course.lessons?.find(l => l.id === parsedLeccionId - 1) : null;
   const backPath = prevLesson ? (prevLesson.path ? `/curso/${id}${prevLesson.path}` : `/curso/${id}`) : `/curso/${id}`;
 
-  // Resumen solo aparece si la lección no tiene contenido propio (ahí es donde
-  // se muestra la info del curso); Evaluación, solo en la última lección.
-  const tabs = ['Resumen', 'Evaluación'].filter((tab) =>
-    tab === 'Evaluación' ? isEvalLesson : !tieneContenido
-  );
-  // El contenido del quiz vive en activeTab === 2, no en el índice del array:
-  // los clicks mapean a esos valores y no a la posición de la pestaña.
-  const tabActiva = (tab) => (tab === 'Evaluación' ? 2 : 0);
-
-  // El contenido propio de la lección viene del admin (Lesson.content_text) y
-  // se pinta debajo del video. Este bloque es solo el fallback para lecciones
-  // sin contenido: muestra la descripción del curso.
   const renderLessonContent = () => {
     if (course.description) {
       return (
@@ -153,38 +99,10 @@ export const CursoLeccionPage = () => {
     );
   };
 
-  // La evaluación vive en la última lección del curso. Course 3 la tenía
-  // hardcodeada en el 4 en tres lugares distintos (pestaña, botón y gate de
-  // navegación); si el catálogo cambiaba, esas rutas se quedaban atrás.
-  const irAEvaluacion = () => {
-    setActiveTab(2);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  // "Ir a evaluación" solo tiene sentido si el estudiante todavía no está ahí y
-  // todavía no la rindió. Si ya está en la pestaña le llevaba a donde ya está,
-  // y después de aprobar lo mandaba a repetir algo que ya había terminado.
-  const mostrarIrAEvaluacion = activeTab !== 2 && !quizPassed;
-
-  // Lógica para determinar qué botón de navegación inferior mostrar
   const renderBottomNavButton = () => {
-    // El progreso al 100% no es una nota: lo único que puede hacer es llevar a
-    // la evaluación. El botón decía "Descargar Certificado" y generaba un PDF
-    // en el navegador sin que nadie hubiera aprobado.
-    if (course.progress === 100) {
-      if (!mostrarIrAEvaluacion) return null;
-      return (
-        <button
-          onClick={irAEvaluacion}
-          className="flex items-center gap-2 bg-[#f6811e] text-white px-8 py-4 rounded-2xl font-bold hover:bg-[#5fbd44] transition-all shadow-lg shadow-[#f6811e]/20 group cursor-pointer"
-        >
-          Ir a Evaluación
-          <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-        </button>
-      );
-    }
+    if (course.progress === 100) return null;
 
-    if (isEvalLesson && quizPassed) {
+    if (parsedLeccionId === course.totalLessons) {
       return (
         <button
           onClick={handleCompleteCourse}
@@ -200,7 +118,6 @@ export const CursoLeccionPage = () => {
       return (
         <button
           onClick={async () => {
-            // Guardar la lección actual como completada antes de avanzar
             await markLessonComplete(id, currentLesson.id, currentUser?.uid);
             navigate(`/curso/${id}/leccion/${parsedLeccionId + 1}`);
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -218,17 +135,7 @@ export const CursoLeccionPage = () => {
 
   return (
     <div className="flex flex-col lg:grid lg:grid-cols-3 gap-8 items-start w-full max-w-[1600px] mx-auto">
-
-      {/* --- COLUMNA PRINCIPAL (CONTENIDO) --- */}
-      {/* min-w-0 en las dos columnas: `lg:grid-cols-3` compila a
-          repeat(3, minmax(0,1fr)), asi que el track NO puede crecer cuando el
-          contenido es mas ancho que su columna. Sin esto, un titulo de leccion
-          largo del admin no se ajusta: la caja se derrama encima de la columna
-          vecina. `min-w-0` les deja encogerse por debajo de su min-content
-          para que el texto de dentro sea el que se parte. */}
       <div className="w-full min-w-0 lg:col-span-2 flex flex-col gap-6">
-
-        {/* 1. Enlace de retorno */}
         <div>
           <button
             onClick={() => navigate(backPath)}
@@ -239,27 +146,11 @@ export const CursoLeccionPage = () => {
           </button>
         </div>
 
-        {/* 2. Título principal */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h1 className="text-3xl font-bold text-gray-900 leading-tight break-words">
             {currentLesson.id}. {currentLesson.title.replace(/^\d+\.\s*/, '')}
           </h1>
-          {course.progress === 100 || isEvalLesson ? (
-            // El progreso al 100% ya no significa "certificate listo": el
-            // certificado depende de la nota. Este botón lleva a la evaluación,
-            // que es donde el estudiante lo descarga o lo pide por correo.
-            // Se oculta si ya estás en la pestaña de evaluación o si ya la
-            // terminaste, por el mismo motivo que el de abajo.
-            mostrarIrAEvaluacion ? (
-              <button
-                onClick={irAEvaluacion}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-[#f6811e] text-[#f6811e] rounded-lg font-bold transition-colors hover:bg-green-50 whitespace-nowrap w-full sm:w-auto text-sm cursor-pointer"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                Ir a mi evaluación
-              </button>
-            ) : null
-          ) : (
+          {course.progress !== 100 && (
             <button
               onClick={parsedLeccionId === course.totalLessons ? handleCompleteCourse : async () => {
                 await markLessonComplete(id, currentLesson.id, currentUser?.uid);
@@ -274,8 +165,6 @@ export const CursoLeccionPage = () => {
           )}
         </div>
 
-
-        {/* 3. Reproductor de Video (o imagen, si la URL del admin es una imagen) */}
         {currentLesson.mediaType === 'imagen' ? (
           <div className="relative w-full aspect-video bg-black rounded-[24px] overflow-hidden shadow-2xl border-[6px] border-white/10">
             {currentLesson.videoId ? (
@@ -311,8 +200,6 @@ export const CursoLeccionPage = () => {
           </div>
         )}
 
-        {/* 3b. Contenido escrito de la lección: el campo "Contenido escrito"
-            que se carga desde el admin de Django (Lesson.content_text) */}
         {currentLesson.content_text && currentLesson.content_text.trim() && (
           <div className="bg-white rounded-[20px] border border-gray-100 p-6 sm:p-8 shadow-sm">
             <h2 className="text-sm font-black text-[#f6811e] uppercase tracking-widest mb-4">Contenido</h2>
@@ -320,65 +207,19 @@ export const CursoLeccionPage = () => {
           </div>
         )}
 
-        {/* 4. Navegación de pestañas. Si no queda ninguna visible (lección con
-            contenido, no evaluativa) no se pinta la barra entera. */}
-        {tabs.length > 0 && (
-          <div className="border-b border-gray-100 mt-2">
-            <ul className="flex gap-8 overflow-x-auto hide-scrollbar">
-              {tabs.map((tab) => {
-                const activa = activeTab === tabActiva(tab);
-                return (
-                  <li key={tab}>
-                    <button
-                      onClick={() => setActiveTab(tabActiva(tab))}
-                      className={`pb-4 text-[15px] font-bold border-b-[3px] transition-colors ${activa ? 'border-[#f6811e] text-[#f6811e]' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
-                    >
-                      {tab}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        )}
-
-        {/* 5. Contenido de pestañas */}
-        {activeTab === 0 && tabs.includes('Resumen') && (
+        {!tieneContenido && (
           <div className="flex flex-col gap-8">
             {renderLessonContent()}
           </div>
         )}
+      </div>
 
-
-
-        {activeTab === 2 && (
-          <div className="py-6">
-            <EvaluacionCurso
-              onPass={handleQuizPass}
-              courseId={course.id}
-              courseName={course.title || `Curso ${course.id}`}
-              // El quiz no sabe a donde seguir: eso lo decide la pagina, que
-              // es la unica que sabe si esta es la ultima leccion del curso.
-              // Antes estava hardcodeado por curso en el JSX del quiz, con
-              // rutas que ya no existen (/curso/3/leccion/5 daba 404).
-              nextPath={parsedLeccionId === course.totalLessons ? '/cursos' : `/curso/${id}/leccion/${parsedLeccionId + 1}`}
-              buttonText={parsedLeccionId === course.totalLessons ? 'SIGUIENTE CURSO' : 'SIGUIENTE LECCIÓN'}
-            />
-          </div>
-        )}
-
-      </div >
-
-      {/* --- SIDEBAR DERECHO --- */}
       <div className="w-full min-w-0 lg:col-span-1 flex flex-col gap-6">
-
-        {/* Widget: Tu progreso actual dinámico */}
-        <CourseProgress 
-          totalLessons={course.totalLessons} 
-          completedLessons={course.completedLessons} 
+        <CourseProgress
+          totalLessons={course.totalLessons}
+          completedLessons={course.completedLessons}
         />
 
-        {/* Widget: Lecciones del curso */}
         <div className="bg-white rounded-[24px] p-6 md:p-8 shadow-sm border border-gray-100 flex flex-col gap-6">
           <h3 className="text-lg font-bold text-gray-900">Lecciones del curso</h3>
           <div className="flex flex-col gap-3">
@@ -387,7 +228,6 @@ export const CursoLeccionPage = () => {
               const currentLessonNumber = parsedLeccionId;
               const isCompleted = lessonNumber < currentLessonNumber;
               const isActive = lessonNumber === currentLessonNumber;
-              const isLocked = lessonNumber > currentLessonNumber;
 
               if (isCompleted || isActive) {
                 return (
@@ -397,7 +237,7 @@ export const CursoLeccionPage = () => {
                         {isActive ? <Play className="w-4 h-4 fill-current ml-0.5" /> : <CheckCircle2 className="w-5 h-5" />}
                       </div>
                       <div className="min-w-0">
-                        <p className={`font-bold text-[15px] break-words ${isActive ? 'text-gray-900' : 'text-gray-900'}`}>{lesson.id}. {lesson.title}</p>
+                        <p className="font-bold text-[15px] break-words text-gray-900">{lesson.id}. {lesson.title}</p>
                         <p className={`text-[13px] font-semibold mt-0.5 ${isActive ? 'text-[#f6811e]' : 'text-[#10b981]'}`}>{isActive ? 'En curso' : 'Completada'}</p>
                       </div>
                     </div>
@@ -406,7 +246,7 @@ export const CursoLeccionPage = () => {
                         <CheckCircle2 className="w-4 h-4 text-white" />
                       </div>
                     ) : (
-                       <div className="w-6 h-6 rounded-full border-2 border-[#10b981] flex items-center justify-center flex-shrink-0">
+                      <div className="w-6 h-6 rounded-full border-2 border-[#10b981] flex items-center justify-center flex-shrink-0">
                         <CheckCircle2 className="w-4 h-4 text-[#10b981]" />
                       </div>
                     )}
@@ -428,10 +268,8 @@ export const CursoLeccionPage = () => {
             })}
           </div>
         </div>
-
       </div>
 
-      {/* BOTONES DE NAVEGACIÓN INFERIOR DINÁMICOS */}
       <div className="mt-4 flex justify-end w-full lg:col-span-3">
         {renderBottomNavButton()}
       </div>
