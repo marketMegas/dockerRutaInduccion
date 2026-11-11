@@ -5,6 +5,7 @@ import { useCourseStore } from '../store/useCourseStore';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { TextoEnParrafos } from '../components/shared/TextoEnParrafos';
 import { useAuth } from '../context/AuthContext';
+import { EvaluacionCurso } from '../components/EvaluacionCurso';
 
 import { CourseProgress } from '../components/CourseProgress';
 
@@ -14,6 +15,8 @@ export const CursoLeccionPage = () => {
   const { currentCourse: course, isLoading, error, fetchCourseById, clearCurrentCourse, updateCourseProgress, markLessonComplete } = useCourseStore();
   const { currentUser } = useAuth();
   const parsedLeccionId = parseInt(leccionId);
+  const esUltimaLeccion = course && parsedLeccionId === course.totalLessons;
+  const tieneEvaluacion = Boolean(course?.tieneEvaluacionActiva);
 
   useEffect(() => {
     if (id) {
@@ -47,6 +50,12 @@ export const CursoLeccionPage = () => {
         progress: 100
       });
     }
+  };
+
+  // El quiz vive SOLO en la última lección. Al aprobar se finaliza el curso;
+  // el certificado lo gestiona el propio componente de la evaluación.
+  const manejarAprobacion = () => {
+    handleCompleteCourse();
   };
 
   if (isLoading || !course) return <LoadingSpinner text="Cargando tu lección..." />;
@@ -103,6 +112,8 @@ export const CursoLeccionPage = () => {
     if (course.progress === 100) return null;
 
     if (parsedLeccionId === course.totalLessons) {
+      // La evaluación de la última lección reemplaza el botón de finalizar.
+      if (tieneEvaluacion) return null;
       return (
         <button
           onClick={handleCompleteCourse}
@@ -150,7 +161,7 @@ export const CursoLeccionPage = () => {
           <h1 className="text-3xl font-bold text-gray-900 leading-tight break-words">
             {currentLesson.id}. {currentLesson.title.replace(/^\d+\.\s*/, '')}
           </h1>
-          {course.progress !== 100 && (
+          {course.progress !== 100 && !(parsedLeccionId === course.totalLessons && tieneEvaluacion) && (
             <button
               onClick={parsedLeccionId === course.totalLessons ? handleCompleteCourse : async () => {
                 await markLessonComplete(id, currentLesson.id, currentUser?.uid);
@@ -210,6 +221,20 @@ export const CursoLeccionPage = () => {
         {!tieneContenido && (
           <div className="flex flex-col gap-8">
             {renderLessonContent()}
+          </div>
+        )}
+
+        {/* Evaluación: solo en la última lección y si el curso tiene una
+            evaluación activa. Nunca antes, para cumplir "UNA evaluación al
+            final de cada curso". */}
+        {esUltimaLeccion && tieneEvaluacion && (
+          <div className="mt-6 border-t border-gray-100 pt-8">
+            <EvaluacionCurso
+              onPass={manejarAprobacion}
+              courseId={course.id}
+              courseName={course.title || `Curso ${course.id}`}
+              nextPath="/cursos"
+            />
           </div>
         )}
       </div>

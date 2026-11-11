@@ -146,6 +146,14 @@ def _normalizar_url_imagen(url):
     return url
 
 
+def _tiene_evaluacion_activa(course):
+    """True si el curso tiene una evaluación activa (OneToOne con Course)."""
+    try:
+        return bool(course.evaluacion.activa)
+    except Exception:
+        return False
+
+
 def _es_imagen_url(video_url):
     """True si la URL apunta a una imagen y no a un video de YouTube.
 
@@ -210,6 +218,7 @@ def _serializar_curso(course):
         'duration': course.duration,
         'lessonsCount': total,
         'totalLessons': total,
+        'tieneEvaluacionActiva': _tiene_evaluacion_activa(course),
         'progress': 0,
         'completedLessons': 0,
         'lessons': lecciones,

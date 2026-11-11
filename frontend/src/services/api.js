@@ -51,6 +51,7 @@ export const apiFetch = async (ruta, opciones = {}) => {
 // /admin tiene que aparecer en la app sin tocar código. La misma ruta relativa
 // funciona en dev (el proxy de Vite) y en produccion (el proxy de nginx).
 const CURSOS_URL = '/api/cursos/';
+const EVALUACIONES_URL = '/api/cursos/evaluaciones/';
 
 // El status va pegado al error: el componente distingue el 404 de un curso sin
 // evaluación ("aún no tiene evaluación") del 409 de un banco con una pregunta
@@ -88,6 +89,26 @@ export const api = {
   // mock que no ida a ningun lado.
   updateProgress: async (id, progressData) => {
     return { success: true, data: { id: parseInt(id, 10), ...progressData } };
+  },
+
+  // GET /api/cursos/evaluaciones/<id>/  ->  el banco del curso, SIN las
+  // respuestas correctas. Las preguntas viven en Django y se editan en /admin.
+  getEvaluacion: async (courseId) => {
+    const res = await apiFetch(`${EVALUACIONES_URL}${courseId}/`);
+    return leerJson(res);
+  },
+
+  // POST /api/cursos/evaluaciones/<id>/entregar/  ->  la nota ya corregida.
+  // Las respuestas van crudas ({id_pregunta: id_opcion}); el veredicto sale de
+  // comparar contra la base, y la identidad sale del token. Devuelve el JSON
+  // entero (necesita `detalle`).
+  entregarEvaluacion: async (courseId, respuestas) => {
+    const res = await apiFetch(`${EVALUACIONES_URL}${courseId}/entregar/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ respuestas }),
+    });
+    return leerJson(res);
   },
 
   // GET /api/cursos/calificaciones/<userId>/  ->  las notas del usuario con,
