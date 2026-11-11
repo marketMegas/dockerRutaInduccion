@@ -201,9 +201,9 @@ export const CursoLeccionPage = () => {
         )}
 
         {currentLesson.content_text && currentLesson.content_text.trim() && (
-          <div className="bg-white rounded-[20px] border border-gray-100 p-6 sm:p-8 shadow-sm">
+          <div className="bg-white rounded-[20px] border border-gray-100 p-6 sm:p-8 shadow-sm min-w-0">
             <h2 className="text-sm font-black text-[#f6811e] uppercase tracking-widest mb-4">Contenido</h2>
-            <div className="text-gray-600 leading-relaxed text-base whitespace-pre-line">{currentLesson.content_text}</div>
+            <div className="text-gray-600 leading-relaxed text-base whitespace-pre-line break-words overflow-wrap-anywhere">{currentLesson.content_text}</div>
           </div>
         )}
 

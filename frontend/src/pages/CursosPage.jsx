@@ -64,16 +64,16 @@ export const CursosPage = () => {
       {/* 1. Encabezado */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Mis cursos</h1>
-        <p className="text-gray-500">Aquí encontrarás todos los cursos en los que estás inscrito.</p>
+        <p className="text-gray-500">AquÃ­ encontrarÃ¡s todos los cursos en los que estÃ¡s inscrito.</p>
       </div>
 
-      {/* 2. Barra de búsqueda */}
+      {/* 2. Barra de bÃºsqueda */}
       <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
             type="text"
-            placeholder="Buscar por nombre o descripción del curso..."
+            placeholder="Buscar por nombre o descripciÃ³n del curso..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-[#f4faf0] border border-transparent focus:bg-white focus:border-[#5fbd44] focus:ring-2 focus:ring-[#5fbd44]/10 rounded-full py-2.5 pl-11 pr-4 text-sm text-gray-700 outline-none transition-all placeholder:text-gray-400"
@@ -99,7 +99,7 @@ export const CursosPage = () => {
 
       </div>
 
-      {/* 3. Lista de Tarjetas dinámicas */}
+      {/* 3. Lista de Tarjetas dinÃ¡micas */}
       <div className="flex flex-col gap-5 mt-2">
         {filteredCourses.map((course) => {
           const Icon = getIconComponent(course.iconType);
@@ -111,24 +111,31 @@ export const CursosPage = () => {
                 <MoreVertical className="w-5 h-5" />
               </button>
 
+              {/* Columna 1: Imagen/IlustraciÃ³n */}
               {/* Columna 1: Imagen/Ilustración */}
-              <div className={`w-full lg:w-[210px] h-56 lg:h-[280px] rounded-2xl flex items-center justify-center flex-shrink-0 relative overflow-hidden shadow-sm ${!course.imageUrl ? course.color : ''}`}>
+              <div className={`w-full lg:w-[210px] h-56 lg:h-[280px] rounded-2xl flex items-center justify-center flex-shrink-0 relative overflow-hidden shadow-sm ${!course.imageUrl ? course.color : 'bg-gray-50'}`}>
                 {course.imageUrl ? (
                   <img
                     src={course.imageUrl}
                     alt={course.title}
-                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.style.display = 'none';
+                      const fallback = e.currentTarget.nextElementSibling;
+                      if (fallback) fallback.style.display = 'flex';
+                    }}
                   />
-                ) : (
-                  <>
-                    <Icon className="w-16 h-16 text-white opacity-90 drop-shadow-lg" />
-                    <div className="absolute top-4 right-4 w-6 h-6 rounded-full bg-white/20"></div>
-                    <div className="absolute bottom-6 left-6 w-12 h-12 rounded-full bg-white/10"></div>
-                    <div className="absolute top-8 left-8 w-3 h-3 rounded-full bg-white/30"></div>
-                  </>
-                )}
+                ) : null}
+                <div className={`w-full h-full items-center justify-center relative ${course.imageUrl ? 'hidden' : 'flex'} ${course.color || ''}`}>
+                  <Icon className="w-16 h-16 text-white opacity-90 drop-shadow-lg" />
+                  <div className="absolute top-4 right-4 w-6 h-6 rounded-full bg-white/20"></div>
+                  <div className="absolute bottom-6 left-6 w-12 h-12 rounded-full bg-white/10"></div>
+                  <div className="absolute top-8 left-8 w-3 h-3 rounded-full bg-white/30"></div>
+                </div>
               </div>
-
               {/* Columna 2: Info del curso */}
               <div className="flex-1 flex flex-col justify-center py-2 min-w-0">
                 <span className="inline-block bg-[#e8fde2] text-[#f6811e] px-2.5 py-1 rounded-md text-xs font-bold w-max mb-3">
@@ -157,7 +164,7 @@ export const CursosPage = () => {
                 </div>
               </div>
 
-              {/* Columna 3: Progreso y Acción */}
+              {/* Columna 3: Progreso y AcciÃ³n */}
               <div className="w-full lg:w-[260px] flex flex-col justify-center lg:border-l lg:border-gray-100 lg:pl-8 mt-4 lg:mt-0">
                 <div className="flex items-center gap-4 w-full">
                   <div className="relative w-[68px] h-[68px] flex-shrink-0">
@@ -197,8 +204,8 @@ export const CursosPage = () => {
       <div className="text-center mt-6 mb-8">
         <p className="text-gray-500 text-[15px]">
           {filteredCourses.length === 0
-            ? 'No se encontraron cursos que coincidan con tu búsqueda.'
-            : '¿No encuentras tu curso?'}{' '}
+            ? 'No se encontraron cursos que coincidan con tu bÃºsqueda.'
+            : 'Â¿No encuentras tu curso?'}{' '}
           <button
             type="button"
             onClick={() => {

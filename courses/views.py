@@ -43,6 +43,108 @@ _YOUTUBE_HOST_RE = re.compile(
     r'https?://(?:www\.)?(?:youtube\.com|youtu\.be)/', re.IGNORECASE
 )
 
+import urllib.request
+from html import unescape
+
+# Dominios de paginas HTML que alojan una imagen real (accesible via la
+# metaetiqueta og:image / twitter:image). Resolverlas permite pegar el enlace de
+# la pagina (Imgur, Pexels, Unsplash...) en lugar de la imagen directa.
+_PAGINAS_IMAGEN_RE = [
+    # Imgur: albumes, galerias o pagina de imagen simple.
+    re.compile(r'^https?://(?:www\.|m\.)?imgur\.com/(?:a/|gallery/)?[A-Za-z0-9]+(?:[/?#].*)?$', re.IGNORECASE),
+    # Pexels: paginas de foto (con o sin prefijo de idioma).
+    re.compile(r'^https?://(?:www\.)?pexels\.com/(?:[a-z]{2}-[a-z]{2}/)?foto/', re.IGNORECASE),
+    # Unsplash: paginas de foto.
+    re.compile(r'^https?://unsplash\.com/photos/[A-Za-z0-9-]+', re.IGNORECASE),
+]
+
+# Cache por proceso: resolver una pagina implica un HTTP al servicio; no tiene
+# sentido repetirlo en cada serializacion de un mismo curso.
+_IMGUR_RESUELTOS = {}
+
+
+def _es_pagina_imagen(url):
+    return any(p.match(url) for p in _PAGINAS_IMAGEN_RE)
+
+
+# Pexels: el id de la foto esta en la cola de la URL y la imagen directa del CDN
+# se puede construir sin visitar la pagina (evita bloqueos/rate-limit del HTML).
+_PEXELS_FOTO_RE = re.compile(
+    r'^https?://(?:www\.)?pexels\.com/(?:[a-z]{2}-[a-z]{2}/)?foto/[^/]*-(\d+)/?$',
+    re.IGNORECASE,
+)
+
+
+def _construir_pexels(url):
+    m = _PEXELS_FOTO_RE.match(url)
+    if not m:
+        return None
+    pid = m.group(1)
+    return (
+        f'https://images.pexels.com/photos/{pid}/pexels-photo-{pid}.jpeg'
+        '?auto=compress&cs=tinysrgb&h=627&fit=crop&w=1200'
+    )
+
+
+def _resolver_imagen_pagina(url):
+    """Devuelve la URL de imagen directa de una pagina que aloja imagenes.
+
+    Sirve el HTML de la pagina con la metaetiqueta `twitter:image` / `og:image`,
+    que apunta a la imagen real. Se prefiere `twitter:image` (en Imgur es la
+    limpia i.imgur.com/X.jpg; en Pexels trae el query string necesario). El
+    query string se conserva porque el CDN de Pexels lo exige, y las entidades
+    HTML (&amp;...) se decodifican.
+    """
+    if url in _IMGUR_RESUELTOS:
+        return _IMGUR_RESUELTOS[url]
+
+    resuelto = url
+    try:
+        req = urllib.request.Request(url, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+        })
+        with urllib.request.urlopen(req, timeout=8) as r:
+            html = r.read(250000).decode('utf-8', errors='ignore')
+        m = re.search(
+            r'<meta[^>]+(?:name="twitter:image"|property="og:image")[^>]*content="([^"]+)"',
+            html,
+        )
+        if m:
+            resuelto = unescape(m.group(1))
+    except Exception:
+        # Si falla la resolucion (sin red, timeout...), se deja la URL original;
+        # el frontend muestra el fallback si no carga.
+        pass
+
+    _IMGUR_RESUELTOS[url] = resuelto
+    return resuelto
+
+
+def _normalizar_url_imagen(url):
+    """Devuelve una URL de imagen utilizable en <img> a partir de enlaces comunes.
+
+    Acepta links directos (cualquier imagen) y enlaces de pagina/album (Imgur,
+    Pexels, Unsplash): estos ultimos se resuelven a su imagen real leyendo el
+    HTML de la pagina.
+    """
+    if not url:
+        return None
+    url = url.strip()
+    if not url:
+        return None
+
+    if _es_pagina_imagen(url):
+        # Pexels se resuelve de forma determinista sin red; el resto (Imgur,
+        # Unsplash) leyendo el HTML de la pagina.
+        directo_pexels = _construir_pexels(url)
+        if directo_pexels:
+            return directo_pexels
+        return _resolver_imagen_pagina(url)
+
+    return url
+
 
 def _es_imagen_url(video_url):
     """True si la URL apunta a una imagen y no a un video de YouTube.
@@ -80,13 +182,18 @@ def _serializar_curso(course):
     lecciones = []
     for leccion in course.lessons.all().order_by('order'):
         orden = len(lecciones) + 1
+        es_video = not _es_imagen_url(leccion.video_url)
         lecciones.append({
             'id': orden,
             'title': leccion.title,
-            'duration': leccion.duration or '—',
+            'duration': leccion.duration or '�?"',
             'path': '' if orden == 1 else f'/leccion/{orden}',
-            'videoId': _youtube_id(leccion.video_url),
-            'mediaType': 'imagen' if _es_imagen_url(leccion.video_url) else 'video',
+            'videoId': (
+                _youtube_id(leccion.video_url)
+                if es_video
+                else _normalizar_url_imagen(leccion.video_url)
+            ),
+            'mediaType': 'video' if es_video else 'imagen',
             'content_text': leccion.content_text,
         })
 
@@ -95,7 +202,7 @@ def _serializar_curso(course):
         'id': course.id,
         'title': course.title,
         'description': course.description,
-        'imageUrl': course.cover_image or None,
+        'imageUrl': _normalizar_url_imagen(course.cover_image),
         'color': course.accent_color,
         'iconType': course.icon_type,
         'badge': course.badge,

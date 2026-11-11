@@ -13,7 +13,13 @@ class Course(models.Model):
 
     title = models.CharField(max_length=255, verbose_name="Título")
     description = models.TextField(verbose_name="Descripción")
-    cover_image = models.URLField(null=True, blank=True, verbose_name="URL de la imagen de portada")
+    cover_image = models.CharField(
+        max_length=2048,
+        null=True,
+        blank=True,
+        verbose_name="URL de la imagen de portada",
+        help_text="Pega el enlace de la imagen (directo o de servicios como Imgur), sin importar resolución o formato.",
+    )
     icon_type = models.CharField(
         max_length=50, choices=ICON_CHOICES, default='Bot', verbose_name="Icono"
     )
@@ -39,7 +45,11 @@ class Lesson(models.Model):
     # modulos en una sola lista de lecciones.
     course = models.ForeignKey(Course, related_name='lessons', on_delete=models.CASCADE, verbose_name="Curso")
     title = models.CharField(max_length=255, verbose_name="Título de la lección")
-    video_url = models.URLField(verbose_name="URL del video")
+    video_url = models.CharField(
+        max_length=2048,
+        verbose_name="URL del video",
+        help_text="Pega un enlace de video de YouTube o de una imagen (directa o de páginas como Imgur/Pexels/Unsplash).",
+    )
     duration = models.CharField(max_length=50, verbose_name="Duración (ej. 12:30)")
     content_text = models.TextField(blank=True, verbose_name="Contenido escrito")
     order = models.PositiveIntegerField(default=0, verbose_name="Orden")
