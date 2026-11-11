@@ -109,22 +109,8 @@ export const CursoLeccionPage = () => {
   };
 
   const renderBottomNavButton = () => {
-    if (course.progress === 100) return null;
-
-    if (parsedLeccionId === course.totalLessons) {
-      // La evaluación de la última lección reemplaza el botón de finalizar.
-      if (tieneEvaluacion) return null;
-      return (
-        <button
-          onClick={handleCompleteCourse}
-          className="flex items-center gap-2 bg-[#10b981] text-white px-8 py-4 rounded-2xl font-bold hover:bg-[#059669] transition-all shadow-lg shadow-[#10b981]/20 group cursor-pointer"
-        >
-          Finalizar Curso
-          <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-        </button>
-      );
-    }
-
+    // Siempre hay botón para avanzar a la siguiente lección, sin excepciones,
+    // mientras exista una lección adelante.
     if (parsedLeccionId < course.totalLessons) {
       return (
         <button
@@ -136,6 +122,21 @@ export const CursoLeccionPage = () => {
           className="flex items-center gap-2 bg-[#f6811e] text-white px-8 py-4 rounded-2xl font-bold hover:bg-[#5fbd44] transition-all shadow-lg shadow-[#f6811e]/20 group cursor-pointer"
         >
           Siguiente Lección
+          <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+        </button>
+      );
+    }
+
+    // Última lección: no hay siguiente. El quiz (si existe) gestiona el cierre;
+    // si no, se ofrece Finalizar Curso.
+    if (parsedLeccionId === course.totalLessons) {
+      if (tieneEvaluacion) return null;
+      return (
+        <button
+          onClick={handleCompleteCourse}
+          className="flex items-center gap-2 bg-[#10b981] text-white px-8 py-4 rounded-2xl font-bold hover:bg-[#059669] transition-all shadow-lg shadow-[#10b981]/20 group cursor-pointer"
+        >
+          Finalizar Curso
           <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
         </button>
       );
