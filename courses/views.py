@@ -186,7 +186,7 @@ def _serializar_curso(course):
         lecciones.append({
             'id': orden,
             'title': leccion.title,
-            'duration': leccion.duration or '�?"',
+            'duration': leccion.duration or '—',
             'path': '' if orden == 1 else f'/leccion/{orden}',
             'videoId': (
                 _youtube_id(leccion.video_url)
