@@ -102,7 +102,7 @@ class LessonAdminForm(forms.ModelForm):
 class LessonInline(admin.TabularInline):
     model = Lesson
     form = LessonAdminForm
-    extra = 1
+    extra = 0
     fields = (
         'title', 'video_url', 'image_urls',
         'nuevas_imagenes', 'nuevos_pdfs',
@@ -126,7 +126,7 @@ class EvaluacionInline(admin.TabularInline):
 
 class RecursoInline(admin.TabularInline):
     model = Recurso
-    extra = 1
+    extra = 0
     fields = ('title', 'lesson', 'tipo', 'archivo', 'description', 'order')
     ordering = ('order',)
 
