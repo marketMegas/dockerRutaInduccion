@@ -6,9 +6,19 @@ venv/
 .env
 db.sqlite3
 db.sqlite3-*
+db.sqlite3.*
+data/
 staticfiles/
 media/
 node_modules/
 frontend/dist/
 scratch/
 __probe__
+
+# Artefactos del emulador de Firebase (ver firebase.json)
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+*-debug.log
+

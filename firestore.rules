@@ -1,0 +1,56 @@
+rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// La colección `calificaciones` la lee el navegador del estudiante en
+// frontend/src/pages/CalificacionesPage.jsx (onSnapshot sobre
+// `where('userId', '==', currentUser.uid)`) para que la nota aparezca sin
+// recargar.
+//
+// El backend NO escribe en Firestore: no hay firebase-admin en
+// requirements.txt ni service account en el proyecto, asi que esta coleccion
+// hoy no tiene escritor. Las notas reales viven en SQLite
+// (courses.Calificacion) y se leen por GET /api/cursos/calificaciones/<uid>/,
+// que si exige sesion verificada (usuarios.permisos.requiere_estudiante).
+// Esta coleccion quedo de una version anterior y sigue vacia.
+//
+// Por eso estas reglas importan igual: el navegador consulta Firestore
+// DIRECTAMENTE desde el cliente, con el SDK web. El unico freno para que un
+// alumno lea las notas de otro es el `userId` de la query, y sin reglas que lo
+// comprueben, cambiar ese uid en la consola del navegador devuelve todas las
+// calificaciones de la plataforma. Es el mismo IDOR que cerro usuarios/permisos
+// para el backend, del lado del cliente.
+// ─────────────────────────────────────────────────────────────────────────────
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /calificaciones/{calificacionId} {
+
+      // Solo el dueno del documento. Y solo si hay sesion: request.auth es null
+      // para un visitante anonimo, y sin esta comprobacion `null == null`
+      // dejaria leer los documentos sin userId.
+      //
+      // Que funcione con la query del frontend no es casualidad: Firestore no
+      // filtra despues, concede la lectura solo si puede PROBAR la condicion
+      // con la query. Un list() de la coleccion entera se deniega, que es
+      // justo lo que se quiere.
+      allow get, list: if request.auth != null
+                       && request.auth.uid == resource.data.userId;
+
+      // Nadie escribe desde el cliente. La nota la corrige Django.
+      //
+      // Ojo con una confusion habitual: un service account con el Admin SDK
+      // escribe igual, porque las reglas no aplican a quien administra la base.
+      // Si alguna vez se agrega eso al backend, este `false` no lo frena y la
+      // proteccion real passa a ser el service account y la regla de que solo
+      // el backend fala con Firestore.
+      allow write: if false;
+    }
+
+    // Cualquier otra coleccion: cerrada. Sin este match, una coleccion creada
+    // desde la console nace con las reglas por defecto del proyecto, que
+    // pueden venir en allow read, write: if true.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
