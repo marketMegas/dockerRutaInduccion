@@ -6,6 +6,7 @@ import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { TextoEnParrafos } from '../components/shared/TextoEnParrafos';
 import { useAuth } from '../context/AuthContext';
 import { EvaluacionCurso } from '../components/EvaluacionCurso';
+import { ImageCarousel } from '../components/ImageCarousel';
 
 import { CourseProgress } from '../components/CourseProgress';
 
@@ -75,6 +76,11 @@ export const CursoLeccionPage = () => {
     title: `Lección ${parsedLeccionId}`,
     videoId: ''
   };
+
+  const esImagen = currentLesson.mediaType === 'imagen' || currentLesson.mediaType === 'carrusel';
+  const imagenesLeccion = Array.isArray(currentLesson.images) && currentLesson.images.length > 0
+    ? currentLesson.images
+    : (esImagen && currentLesson.videoId ? [currentLesson.videoId] : []);
 
   const tieneContenido = Boolean(currentLesson.content_text && currentLesson.content_text.trim());
 
@@ -177,14 +183,10 @@ export const CursoLeccionPage = () => {
           )}
         </div>
 
-        {currentLesson.mediaType === 'imagen' ? (
+        {esImagen ? (
           <div className="relative w-full aspect-video bg-black rounded-[24px] overflow-hidden shadow-2xl border-[6px] border-white/10">
-            {currentLesson.videoId ? (
-              <img
-                src={currentLesson.videoId}
-                alt={currentLesson.title}
-                className="absolute inset-0 w-full h-full object-contain"
-              />
+            {imagenesLeccion.length > 0 ? (
+              <ImageCarousel images={imagenesLeccion} alt={currentLesson.title} />
             ) : (
               <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center text-gray-500">
                 <Play className="w-16 h-16 mb-4 opacity-50" />

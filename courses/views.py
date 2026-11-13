@@ -146,6 +146,26 @@ def _normalizar_url_imagen(url):
     return url
 
 
+def _urls_imagenes(texto):
+    """Convierte el textarea del admin en una lista de URLs de imagen limpias.
+
+    El campo `Lesson.image_urls` guarda una URL por linea (tambien se aceptan
+    comas), y aca se normaliza cada una igual que la portada del curso para que
+    el frontend reciba enlaces utilizables en <img>.
+    """
+    if not texto:
+        return []
+    imagenes = []
+    for linea in re.split(r'[\r\n,]+', texto):
+        url = linea.strip()
+        if not url:
+            continue
+        normalizada = _normalizar_url_imagen(url)
+        if normalizada:
+            imagenes.append(normalizada)
+    return imagenes
+
+
 def _tiene_evaluacion_activa(course):
     """True si el curso tiene una evaluación activa (OneToOne con Course)."""
     try:
@@ -190,18 +210,31 @@ def _serializar_curso(course):
     lecciones = []
     for leccion in course.lessons.all().order_by('order'):
         orden = len(lecciones) + 1
-        es_video = not _es_imagen_url(leccion.video_url)
+        # Las imagenes del carrusel mandan sobre `video_url`: si el admin lleno
+        # el textarea, la leccion es una galeria (una o varias imagenes). Si no,
+        # se conserva el comportamiento de siempre (YouTube o una sola imagen).
+        imagenes = _urls_imagenes(leccion.image_urls)
+        if imagenes:
+            media_type = 'carrusel' if len(imagenes) > 1 else 'imagen'
+            video_id = imagenes[0]
+        else:
+            es_video = not _es_imagen_url(leccion.video_url)
+            media_type = 'video' if es_video else 'imagen'
+            video_id = (
+                _youtube_id(leccion.video_url)
+                if es_video
+                else _normalizar_url_imagen(leccion.video_url)
+            )
+            if media_type == 'imagen' and video_id:
+                imagenes = [video_id]
         lecciones.append({
             'id': orden,
             'title': leccion.title,
             'duration': leccion.duration or '—',
             'path': '' if orden == 1 else f'/leccion/{orden}',
-            'videoId': (
-                _youtube_id(leccion.video_url)
-                if es_video
-                else _normalizar_url_imagen(leccion.video_url)
-            ),
-            'mediaType': 'video' if es_video else 'imagen',
+            'videoId': video_id,
+            'mediaType': media_type,
+            'images': imagenes,
             'content_text': leccion.content_text,
         })
 

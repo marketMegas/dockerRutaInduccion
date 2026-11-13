@@ -5,6 +5,7 @@ import { useCourseStore } from '../store/useCourseStore';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { TextoEnParrafos } from '../components/shared/TextoEnParrafos';
 import { useAuth } from '../context/AuthContext';
+import { ImageCarousel } from '../components/ImageCarousel';
 
 import { CourseProgress } from '../components/CourseProgress';
 
@@ -55,7 +56,11 @@ export const CursoDetailPage = () => {
   const lesson1VideoId = lesson1
     ? lesson1.videoId
     : (course.videoId || '');
-  const lesson1EsImagen = lesson1 && lesson1.mediaType === 'imagen';
+  const lesson1EsImagen = lesson1
+    && (lesson1.mediaType === 'imagen' || lesson1.mediaType === 'carrusel');
+  const lesson1Imagenes = lesson1 && Array.isArray(lesson1.images) && lesson1.images.length > 0
+    ? lesson1.images
+    : (lesson1EsImagen && lesson1VideoId ? [lesson1VideoId] : []);
 
   return (
     <div className="flex flex-col lg:grid lg:grid-cols-3 gap-8 items-start w-full max-w-[1600px] mx-auto">
@@ -88,12 +93,8 @@ export const CursoDetailPage = () => {
         {/* 3. Reproductor de Video (o imagen, si la URL del admin es una imagen) */}
         {lesson1EsImagen ? (
           <div className="relative aspect-video w-full bg-black rounded-[24px] overflow-hidden shadow-2xl border-[6px] border-white/10">
-            {lesson1VideoId ? (
-              <img
-                src={lesson1VideoId}
-                alt={course.title}
-                className="absolute inset-0 w-full h-full object-contain"
-              />
+            {lesson1Imagenes.length > 0 ? (
+              <ImageCarousel images={lesson1Imagenes} alt={course.title} />
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center px-6">
                 <Play className="w-14 h-14 text-[#f6811e]" />

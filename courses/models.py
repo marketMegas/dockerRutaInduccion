@@ -50,6 +50,12 @@ class Lesson(models.Model):
         verbose_name="URL del video",
         help_text="Pega un enlace de video de YouTube o de una imagen (directa o de páginas como Imgur/Pexels/Unsplash).",
     )
+    image_urls = models.TextField(
+        blank=True,
+        default='',
+        verbose_name="URLs de imágenes (carrusel)",
+        help_text="Una URL por línea. Con dos o más se muestran como carrusel; si se llena, tiene prioridad sobre la URL del video.",
+    )
     duration = models.CharField(max_length=50, verbose_name="Duración (ej. 12:30)")
     content_text = models.TextField(blank=True, verbose_name="Contenido escrito")
     order = models.PositiveIntegerField(default=0, verbose_name="Orden")

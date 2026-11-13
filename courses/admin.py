@@ -10,7 +10,7 @@ from evaluaciones.models import Evaluacion
 class LessonInline(admin.TabularInline):
     model = Lesson
     extra = 1
-    fields = ('title', 'video_url', 'duration', 'content_text', 'order')
+    fields = ('title', 'video_url', 'image_urls', 'duration', 'content_text', 'order')
     ordering = ('order',)
 
 class EvaluacionInline(admin.TabularInline):
