@@ -200,13 +200,33 @@ def _es_imagen_url(video_url):
     return True
 
 
+def _serializar_recurso(recurso):
+    return {
+        'id': recurso.id,
+        'title': recurso.title,
+        'tipo': recurso.tipo,
+        'url': recurso.archivo.url,
+        'description': recurso.description,
+    }
+
+
 def _serializar_curso(course):
     """Aplana las lecciones del curso al contrato que espera el frontend.
 
     El frontend trabaja con una lista plana de lecciones, numeradas de 1 en
     adelante segun su `order`. Antes las lecciones colgaban de un modulo
     intermedio; se elimino ese nivel y ahora cuelgan directo del curso.
+
+    Los recursos se reparten en dos grupos: los que no tienen leccion siguen
+    siendo del curso (pestaña "Recursos" al inicio) y los que si la tienen
+    viajan dentro de esa leccion.
     """
+    recursos = list(course.recursos.all().order_by('order'))
+    recursos_por_leccion = {}
+    for recurso in recursos:
+        if recurso.lesson_id:
+            recursos_por_leccion.setdefault(recurso.lesson_id, []).append(recurso)
+
     lecciones = []
     for leccion in course.lessons.all().order_by('order'):
         orden = len(lecciones) + 1
@@ -236,6 +256,10 @@ def _serializar_curso(course):
             'mediaType': media_type,
             'images': imagenes,
             'content_text': leccion.content_text,
+            'recursos': [
+                _serializar_recurso(recurso)
+                for recurso in recursos_por_leccion.get(leccion.id, [])
+            ],
         })
 
     total = len(lecciones)
@@ -255,13 +279,10 @@ def _serializar_curso(course):
         'progress': 0,
         'completedLessons': 0,
         'lessons': lecciones,
-        'recursos': [{
-            'id': recurso.id,
-            'title': recurso.title,
-            'tipo': recurso.tipo,
-            'url': recurso.archivo.url,
-            'description': recurso.description,
-        } for recurso in course.recursos.all().order_by('order')],
+        'recursos': [
+            _serializar_recurso(recurso)
+            for recurso in recursos if recurso.lesson_id is None
+        ],
     }
 
 

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, CheckCircle2, Play, Lock } from 'lucide-react';
 import { useCourseStore } from '../store/useCourseStore';
@@ -7,6 +7,7 @@ import { TextoEnParrafos } from '../components/shared/TextoEnParrafos';
 import { useAuth } from '../context/AuthContext';
 import { EvaluacionCurso } from '../components/EvaluacionCurso';
 import { ImageCarousel } from '../components/ImageCarousel';
+import { RecursosLeccion } from '../components/RecursosLeccion';
 
 import { CourseProgress } from '../components/CourseProgress';
 
@@ -226,6 +227,8 @@ export const CursoLeccionPage = () => {
             {renderLessonContent()}
           </div>
         )}
+
+        <RecursosLeccion recursos={currentLesson.recursos} />
 
         {/* Evaluación: solo en la última lección y si el curso tiene una
             evaluación activa. Nunca antes, para cumplir "UNA evaluación al

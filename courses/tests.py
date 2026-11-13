@@ -4,6 +4,7 @@ from tempfile import TemporaryDirectory
 
 from django.contrib.auth import get_user_model
 from django.core import mail
+from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -11,6 +12,7 @@ from django.db import IntegrityError, transaction
 from django.test import TestCase, override_settings
 
 from usuarios.testing import ConSesion
+from .admin import _crear_recurso_subido
 from .models import Calificacion, Certificado, Course, Lesson, Recurso
 
 AdminUser = get_user_model()
@@ -910,6 +912,9 @@ class AdminReorganizadoTest(TestCase):
         self.assertIn('lessons-TOTAL_FORMS', html)
         self.assertIn('recursos-TOTAL_FORMS', html)
         self.assertIn('evaluacion-TOTAL_FORMS', html)
+        # Cada lección trae sus campos de subida de imágenes y PDFs.
+        self.assertIn('nuevas_imagenes', html)
+        self.assertIn('nuevos_pdfs', html)
 
     def test_la_evaluacion_va_despues_de_las_lecciones(self):
         html = self.client.get(
@@ -920,6 +925,56 @@ class AdminReorganizadoTest(TestCase):
             html.index('lessons-TOTAL_FORMS'),
             html.index('evaluacion-TOTAL_FORMS'),
         )
+
+    def test_subir_un_archivo_en_una_leccion_desde_el_admin(self):
+        self.client.force_login(self.admin)
+
+        imagen = SimpleUploadedFile(
+            'foto.png', b'\x89PNG\r\n\x1a\n', content_type='image/png',
+        )
+        datos = {
+            'title': 'Curso con subida',
+            'description': '.',
+            'icon_type': 'Bot',
+            'accent_color': 'bg-[#f6811e]',
+            'badge': 'Nuevo',
+            'level': 'Básico',
+            'duration': '1h',
+            'lessons-TOTAL_FORMS': '1',
+            'lessons-INITIAL_FORMS': '0',
+            'lessons-MIN_NUM_FORMS': '0',
+            'lessons-MAX_NUM_FORMS': '1000',
+            'lessons-0-title': 'Primera',
+            'lessons-0-video_url': 'https://youtu.be/abc',
+            'lessons-0-image_urls': '',
+            'lessons-0-duration': '10:00',
+            'lessons-0-content_text': '',
+            'lessons-0-order': '1',
+            'recursos-TOTAL_FORMS': '0',
+            'recursos-INITIAL_FORMS': '0',
+            'recursos-MIN_NUM_FORMS': '0',
+            'recursos-MAX_NUM_FORMS': '1000',
+            'evaluacion-TOTAL_FORMS': '0',
+            'evaluacion-INITIAL_FORMS': '0',
+            'evaluacion-MIN_NUM_FORMS': '0',
+            'evaluacion-MAX_NUM_FORMS': '1',
+            '_save': 'Guardar',
+        }
+        archivos = {
+            'lessons-0-nuevas_imagenes': imagen,
+        }
+
+        datos.update(archivos)
+        respuesta = self.client.post('/admin/courses/course/add/', datos)
+
+        self.assertEqual(respuesta.status_code, 302)
+        curso = Course.objects.get(title='Curso con subida')
+        leccion = curso.lessons.get()
+        recursos = list(curso.recursos.all())
+        self.assertEqual(len(recursos), 1)
+        self.assertEqual(recursos[0].lesson, leccion)
+        self.assertEqual(recursos[0].tipo, 'Imagen')
+        self.assertEqual(recursos[0].title, 'foto.png')
 
     # ── Una sola evaluación por curso ──────────────────────────────────────
 
@@ -969,3 +1024,72 @@ class LeccionesSinModuloTest(ConSesion, TestCase):
         )
 
         self.assertEqual(list(curso.recursos.all()), [recurso])
+
+    def test_el_recurso_de_una_leccion_va_en_la_leccion_y_no_en_el_curso(self):
+        curso = Course.objects.create(title='Curso con recursos', description='.')
+        leccion = Lesson.objects.create(course=curso, title='Lección', order=1)
+        general = Recurso.objects.create(
+            course=curso, title='General', tipo='PDF',
+            archivo='recursos/general.pdf', order=1,
+        )
+        de_leccion = Recurso.objects.create(
+            course=curso, lesson=leccion, title='Adjunto', tipo='Imagen',
+            archivo='recursos/adjunto.png', order=2,
+        )
+
+        respuesta = self.get(f'/api/cursos/{curso.id}/')
+
+        self.assertEqual(respuesta.status_code, 200)
+        data = respuesta.json()
+        # Los recursos generales siguen al inicio del curso.
+        self.assertEqual([r['id'] for r in data['recursos']], [general.id])
+        # El de la lección viaja dentro de esa lección.
+        self.assertEqual(
+            [r['id'] for r in data['lessons'][0]['recursos']],
+            [de_leccion.id],
+        )
+
+    def test_no_se_puede_colgar_un_recurso_de_una_leccion_de_otro_curso(self):
+        curso = Course.objects.create(title='Curso A', description='.')
+        otro = Course.objects.create(title='Curso B', description='.')
+        leccion_ajena = Lesson.objects.create(course=otro, title='Ajena', order=1)
+        recurso = Recurso(
+            course=curso, lesson=leccion_ajena, title='Mala',
+            tipo='PDF', archivo='recursos/mala.pdf',
+        )
+
+        with self.assertRaises(ValidationError):
+            recurso.full_clean()
+
+    def test_subida_de_archivos_crea_recursos_de_la_leccion(self):
+        curso = Course.objects.create(title='Curso con subida', description='.')
+        leccion = Lesson.objects.create(course=curso, title='Lección', order=1)
+
+        pdf = SimpleUploadedFile(
+            'notas.pdf', b'%PDF-1.4', content_type='application/pdf',
+        )
+        imagen = SimpleUploadedFile(
+            'diagrama.png', b'\x89PNG\r\n', content_type='image/png',
+        )
+
+        recurso_pdf, error_pdf = _crear_recurso_subido(leccion, pdf)
+        recurso_imagen, error_imagen = _crear_recurso_subido(leccion, imagen)
+
+        self.assertIsNone(error_pdf)
+        self.assertIsNone(error_imagen)
+        self.assertEqual(recurso_pdf.tipo, 'PDF')
+        self.assertEqual(recurso_pdf.lesson, leccion)
+        self.assertEqual(recurso_imagen.tipo, 'Imagen')
+        self.assertEqual(recurso_imagen.lesson, leccion)
+
+    def test_subida_rechaza_tipo_no_permitido(self):
+        curso = Course.objects.create(title='Curso', description='.')
+        leccion = Lesson.objects.create(course=curso, title='Lección', order=1)
+
+        malo = SimpleUploadedFile(
+            'malo.txt', b'hola', content_type='text/plain',
+        )
+        recurso, error = _crear_recurso_subido(leccion, malo)
+
+        self.assertIsNone(recurso)
+        self.assertIsNotNone(error)

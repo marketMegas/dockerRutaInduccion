@@ -56,7 +56,7 @@ class Lesson(models.Model):
         verbose_name="URLs de imágenes (carrusel)",
         help_text="Una URL por línea. Con dos o más se muestran como carrusel; si se llena, tiene prioridad sobre la URL del video.",
     )
-    duration = models.CharField(max_length=50, verbose_name="Duración (ej. 12:30)")
+    duration = models.CharField(max_length=50, blank=True, default='', verbose_name="Duración (ej. 12:30)")
     content_text = models.TextField(blank=True, verbose_name="Contenido escrito")
     order = models.PositiveIntegerField(default=0, verbose_name="Orden")
 
@@ -75,6 +75,16 @@ class Recurso(models.Model):
     ]
 
     course = models.ForeignKey(Course, related_name='recursos', on_delete=models.CASCADE, verbose_name="Curso")
+    # Los recursos del curso (lesson vacio) se siguen mostrando al inicio, en
+    # la pestaña "Recursos". Al elegir una leccion, el archivo aparece dentro
+    # de esa leccion y deja de listarse entre los recursos generales.
+    lesson = models.ForeignKey(
+        Lesson, null=True, blank=True,
+        on_delete=models.CASCADE,
+        related_name='recursos',
+        verbose_name="Lección",
+        help_text="Vacío = recurso general del curso.",
+    )
     title = models.CharField(max_length=255, verbose_name="Título del recurso")
     tipo = models.CharField(max_length=10, choices=TIPO_CHOICES, verbose_name="Tipo")
     archivo = models.FileField(upload_to='recursos/', verbose_name="Archivo")
@@ -86,8 +96,19 @@ class Recurso(models.Model):
         verbose_name = "Recurso"
         verbose_name_plural = "Recursos"
 
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        # Evita colgar un recurso de una leccion de otro curso: el admin deja
+        # elegir la leccion en el mismo formulario del curso, pero nada impide
+        # que llegue un id de otra fila por API o por un formulario manipulado.
+        if self.lesson_id and self.course_id and self.lesson.course_id != self.course_id:
+            raise ValidationError({
+                'lesson': 'La lección debe pertenecer al mismo curso del recurso.',
+            })
+
     def __str__(self):
-        return f"{self.course.title} - {self.title} ({self.tipo})"
+        destino = f"Lección {self.lesson.title}" if self.lesson_id else "Curso"
+        return f"{self.course.title} - {destino} - {self.title} ({self.tipo})"
 
 class UserProgress(models.Model):
     # El uid de Firebase de la persona. No es un campo libre: lo escribe

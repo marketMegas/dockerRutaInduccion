@@ -1,16 +1,113 @@
+import os
+
+from django import forms
 from django.contrib import admin, messages
 from django.core.files.storage import default_storage
-from django.db.models import Count, OuterRef, Subquery
+from django.db.models import Count, Max, OuterRef, Subquery
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from .models import Course, Lesson, Calificacion, Certificado, Recurso
 from .views import _adjunto_certificado, _cuerpo_certificado, _enviar
 from evaluaciones.models import Evaluacion
 
+EXTENSIONES_IMAGEN = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg'}
+
+
+def _tipo_archivo(archivo):
+    """PDF si termina en .pdf, Imagen si es una extension de imagen, sino None."""
+    extension = os.path.splitext((archivo.name or '').lower())[1]
+    if extension == '.pdf':
+        return 'PDF'
+    if extension in EXTENSIONES_IMAGEN:
+        return 'Imagen'
+    return None
+
+
+def _crear_recurso_subido(leccion, archivo):
+    """Crea un Recurso colgado de la leccion a partir de un archivo subido.
+
+    Devuelve (recurso, None) si todo bien, o (None, mensaje de error) si el
+    tipo no esta permitido o falta la extension.
+    """
+    tipo = _tipo_archivo(archivo)
+    if tipo is None:
+        nombre = archivo.name or 'sin nombre'
+        return None, f'"{nombre}": tipo no permitido (usa un PDF o una imagen).'
+
+    siguiente_orden = (
+        Recurso.objects.filter(course=leccion.course)
+        .aggregate(maximo=Max('order'))['maximo'] or 0
+    ) + 1
+    recurso = Recurso(
+        course=leccion.course,
+        lesson=leccion,
+        title=archivo.name,
+        tipo=tipo,
+        archivo=archivo,
+        order=siguiente_orden,
+    )
+    recurso.full_clean()
+    recurso.save()
+    return recurso, None
+
+
+class MultiFileWidget(forms.ClearableFileInput):
+    # ClearableFileInput desactiva la multi-subida por defecto; se reactiva
+    # para poder elegir varios archivos en un mismo campo.
+    allow_multiple_selected = True
+
+
+class MultiArchivoField(forms.Field):
+    """Campo de subida multi-archivo que no valida el contenido.
+
+    Django convierte la multi-subida en una lista, y un FileField simple la ve
+    como vacia ("No file was submitted"). Los archivos se procesan en
+    ``CourseAdmin.save_formset`` leyendo ``request.FILES``, asi que este campo
+    solo se encarga de renderizar el input y mantener el formulario valido.
+    """
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('widget', MultiFileWidget())
+        super().__init__(*args, **kwargs)
+
+    def clean(self, value):
+        return None
+
+
+class LessonAdminForm(forms.ModelForm):
+    # Campos de subida por leccion: no son parte del modelo Lesson; al guardar,
+    # CourseAdmin.save_formset los convierte en Recurso de la leccion.
+    nuevas_imagenes = MultiArchivoField(
+        label="Subir imágenes",
+        required=False,
+        widget=MultiFileWidget(attrs={'multiple': True, 'accept': 'image/*'}),
+        help_text="Se añaden como Recursos de esta lección.",
+    )
+    nuevos_pdfs = MultiArchivoField(
+        label="Subir PDFs",
+        required=False,
+        widget=MultiFileWidget(attrs={'multiple': True, 'accept': '.pdf'}),
+        help_text="Se añaden como Recursos de esta lección.",
+    )
+
+    class Meta:
+        model = Lesson
+        fields = '__all__'
+        widgets = {
+            'content_text': forms.Textarea(attrs={'rows': 10, 'style': 'width: 90%; min-width: 240px;'}),
+            'image_urls': forms.Textarea(attrs={'rows': 10, 'style': 'width: 90%; min-width: 240px;'}),
+        }
+
+
 class LessonInline(admin.TabularInline):
     model = Lesson
+    form = LessonAdminForm
     extra = 1
-    fields = ('title', 'video_url', 'image_urls', 'duration', 'content_text', 'order')
+    fields = (
+        'title', 'video_url', 'image_urls',
+        'nuevas_imagenes', 'nuevos_pdfs',
+        'content_text', 'order',
+    )
     ordering = ('order',)
 
 class EvaluacionInline(admin.TabularInline):
@@ -30,8 +127,22 @@ class EvaluacionInline(admin.TabularInline):
 class RecursoInline(admin.TabularInline):
     model = Recurso
     extra = 1
-    fields = ('title', 'tipo', 'archivo', 'description', 'order')
+    fields = ('title', 'lesson', 'tipo', 'archivo', 'description', 'order')
     ordering = ('order',)
+
+    def get_formset(self, request, obj=None, **kwargs):
+        # El inline no recibe el curso en formfield_for_foreignkey, asi que se
+        # guarda aqui para limitar el desplegable de lecciones a las del curso
+        # que se esta editando.
+        request._recurso_inline_course = obj
+        return super().get_formset(request, obj, **kwargs)
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == 'lesson':
+            curso = getattr(request, '_recurso_inline_course', None)
+            if curso is not None:
+                kwargs['queryset'] = Lesson.objects.filter(course=curso)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
@@ -40,11 +151,32 @@ class CourseAdmin(admin.ModelAdmin):
     search_fields = ('title', 'description')
     fieldsets = (
         ('Contenido', {'fields': ('title', 'description', 'cover_image')}),
-        ('Presentación', {'fields': ('icon_type', 'accent_color', 'badge', 'level', 'duration')}),
+        ('Presentación', {'fields': ('icon_type', 'accent_color', 'badge', 'level')}),
     )
     # El orden importa: primero el contenido (lecciones), los recursos, y la
     # evaluacion al final del curso.
     inlines = [LessonInline, RecursoInline, EvaluacionInline]
+
+    def save_formset(self, request, form, formset, change):
+        super().save_formset(request, form, formset, change)
+
+        # Los campos de subida de cada fila de leccion se transforman en Recurso
+        # colgados de esa leccion. Se procesan despues de guardar las lecciones
+        # (que ya tienen pk) y solo para las filas que no se marcaron borradas.
+        if formset.model is not Lesson:
+            return
+
+        for formulario in formset.forms:
+            if formulario.cleaned_data.get('DELETE'):
+                continue
+            leccion = formulario.instance
+            if not leccion.pk:
+                continue
+            for campo in ('nuevas_imagenes', 'nuevos_pdfs'):
+                for archivo in request.FILES.getlist(formulario.add_prefix(campo)):
+                    recurso, error = _crear_recurso_subido(leccion, archivo)
+                    if error:
+                        messages.error(request, error)
 
 # Lesson, Recurso y UserProgress NO se registran sueltos: las lecciones y los
 # recursos se editan dentro del curso, y el progreso es dato operativo que no
