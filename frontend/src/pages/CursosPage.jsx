@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Clock, BarChart, MoreVertical, Bot, Users, Megaphone, LineChart, Search } from 'lucide-react';
+import { FileText, BarChart, MoreVertical, Bot, Users, Megaphone, LineChart, Search } from 'lucide-react';
 import { useCourseStore } from '../store/useCourseStore';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { TextoEnParrafos } from '../components/shared/TextoEnParrafos';
@@ -152,10 +152,6 @@ export const CursosPage = () => {
                   <div className="flex items-center gap-2 text-gray-500 text-sm">
                     <FileText className="w-4 h-4" />
                     <span>{course.lessonsCount} lecciones</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-500 text-sm">
-                    <Clock className="w-4 h-4" />
-                    <span>{course.duration}</span>
                   </div>
                   <div className="flex items-center gap-2 text-gray-500 text-sm">
                     <BarChart className="w-4 h-4" />

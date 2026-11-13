@@ -268,7 +268,6 @@ export const CursoDetailPage = () => {
                       </div>
                       <div className="min-w-0">
                         <p className={`font-bold text-[15px] break-words ${isActive ? 'text-gray-900' : 'text-gray-700'}`}>{lesson.id}. {lesson.title}</p>
-                        <p className="text-[13px] text-[#f6811e] font-semibold mt-0.5">{lesson.duration}</p>
                       </div>
                     </div>
                     {isCompleted ? (
